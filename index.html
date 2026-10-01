@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2299.77">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!doctype html&gt;</p>
+<p class="p1">&lt;html lang="en"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="utf-8"&gt;</p>
+<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</p>
+<p class="p1">&lt;meta name="theme-color" content="#24734e"&gt;</p>
+<p class="p1">&lt;title&gt;My Grocery List&lt;/title&gt;</p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>* { box-sizing: border-box; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>body {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>margin: 0; background: #f4f7f1; color: #21362a;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>font: 17px system-ui, sans-serif;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>main { max-width: 600px; margin: auto; padding: 32px 20px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>h1 { margin-bottom: 8px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.intro, #status { color: #536659; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>form {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display: grid; grid-template-columns: 1fr 80px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>gap: 12px; margin: 28px 0;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>label { font-size: 14px; font-weight: 600; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>input {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display: block; width: 100%; padding: 14px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>margin-top: 6px; border: 1px solid #aab9ac;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 12px; font: inherit; background: white;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>button {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>min-height: 48px; border: 0; border-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding: 12px 16px; font: inherit; cursor: pointer;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>color: white; background: #24734e;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>form button { grid-column: 1 / -1; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>button:focus-visible, input:focus-visible {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>outline: 3px solid #dc970b; outline-offset: 3px;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>ul { list-style: none; padding: 0; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>li {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>padding: 16px; margin-bottom: 10px;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>background: white; border-radius: 14px;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>li input { width: 24px; height: 24px; margin: 0; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.item { flex: 1; overflow-wrap: anywhere; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.done .item { text-decoration: line-through; color: #718176; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.remove { background: #edf2ed; color: #435448; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>#clear { width: 100%; background: #e2ebe1; color: #21362a; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>.note { font-size: 13px; color: #536659; margin-top: 24px; }</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1">&lt;main&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;h1&gt;My Grocery List 🥬&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;p class="intro"&gt;A little less to remember.&lt;/p&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;form id="form"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;label&gt;Item</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="name" placeholder="e.g. Apples"</p>
+<p class="p1"><span class="Apple-converted-space">             </span>maxlength="150" required autocomplete="off"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;label&gt;Quantity</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="quantity" type="number" value="1"</p>
+<p class="p1"><span class="Apple-converted-space">             </span>min="1" max="999" step="1" required&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button&gt;Add to list&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/form&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;p id="status" role="status"&gt;&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;ul id="list" aria-label="Groceries"&gt;&lt;/ul&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;button id="clear" type="button"&gt;Clear purchased items&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;p class="note"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>Your list stays in this browser on this device.</p>
+<p class="p1"><span class="Apple-converted-space">    </span>Clearing browser data will erase it.</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/p&gt;</p>
+<p class="p1">&lt;/main&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1">const key = 'my-groceries-v1';</p>
+<p class="p1">const list = document.querySelector('#list');</p>
+<p class="p1">const status = document.querySelector('#status');</p>
+<p class="p1">const nameInput = document.querySelector('#name');</p>
+<p class="p1">const quantityInput = document.querySelector('#quantity');</p>
+<p class="p1">let items = [];</p>
+<p class="p1">let storageAvailable = true;</p>
+<p class="p2"><br></p>
+<p class="p1">try {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const saved = JSON.parse(localStorage.getItem(key) || '[]');</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if (Array.isArray(saved)) {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>items = saved.filter(item =&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>item &amp;&amp; typeof item.name === 'string' &amp;&amp;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>Number.isInteger(item.quantity) &amp;&amp;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>item.quantity &gt;= 1 &amp;&amp; item.quantity &lt;= 999 &amp;&amp;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>typeof item.done === 'boolean'</p>
+<p class="p1"><span class="Apple-converted-space">    </span>);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1">} catch {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>storageAvailable = false;</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function save() {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>localStorage.setItem(key, JSON.stringify(items));</p>
+<p class="p1"><span class="Apple-converted-space">    </span>storageAvailable = true;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>} catch {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>storageAvailable = false;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>render();</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function render() {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>list.replaceChildren();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const remaining = items.filter(item =&gt; !item.done).length;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>status.textContent = items.length</p>
+<p class="p1"><span class="Apple-converted-space">    </span>? `${remaining} of ${items.length} items left to buy`</p>
+<p class="p1"><span class="Apple-converted-space">    </span>: 'Your list is empty. Add your first item above.';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if (!storageAvailable) {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>status.textContent +=</p>
+<p class="p1"><span class="Apple-converted-space">      </span>' Browser storage is unavailable; this list may not survive closing the page.';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>items.forEach((item, index) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const row = document.createElement('li');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>row.className = item.done ? 'done' : '';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const check = document.createElement('input');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>check.type = 'checkbox';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>check.checked = item.done;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>check.setAttribute('aria-label', `Purchased ${item.name}`);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>check.addEventListener('change', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>item.done = check.checked;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const replacement = list.children[index];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (replacement) replacement.querySelector('input').focus();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const text = document.createElement('span');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>text.className = 'item';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>text.textContent = `${item.name} × ${item.quantity}`;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const remove = document.createElement('button');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>remove.type = 'button';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>remove.className = 'remove';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>remove.textContent = '✕';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>remove.setAttribute('aria-label', `Remove ${item.name}`);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>remove.addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>items.splice(index, 1);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const next = list.children[Math.min(index, items.length - 1)];</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (next) next.querySelector('.remove').focus();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>else nameInput.focus();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>row.append(check, text, remove);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>list.append(row);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.querySelector('#clear').disabled =</p>
+<p class="p1"><span class="Apple-converted-space">    </span>!items.some(item =&gt; item.done);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">document.querySelector('#form').addEventListener('submit', event =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>event.preventDefault();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const name = nameInput.value.trim();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if (!name) {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>nameInput.focus();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>items.push({</p>
+<p class="p1"><span class="Apple-converted-space">    </span>name,</p>
+<p class="p1"><span class="Apple-converted-space">    </span>quantity: Number(quantityInput.value),</p>
+<p class="p1"><span class="Apple-converted-space">    </span>done: false</p>
+<p class="p1"><span class="Apple-converted-space">  </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>save();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>nameInput.value = '';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>quantityInput.value = '1';</p>
+<p class="p1"><span class="Apple-converted-space">  </span>nameInput.focus();</p>
+<p class="p1">});</p>
+<p class="p2"><br></p>
+<p class="p1">document.querySelector('#clear').addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>items = items.filter(item =&gt; !item.done);</p>
+<p class="p1"><span class="Apple-converted-space">  </span>save();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>nameInput.focus();</p>
+<p class="p1">});</p>
+<p class="p2"><br></p>
+<p class="p1">render();</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
