@@ -2,74 +2,201 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, 
+initial-scale=1">
 <meta name="theme-color" content="#24734e">
 <link rel="apple-touch-icon" href="grocery_app_icon.png">
-<link rel="icon" type="image/png" href="grocery_app_icon.png">
-<meta name="apple-mobile-web-app-title" content="My Grocery List">
+<link rel="icon" type="image/png" 
+href="grocery_app_icon.png">
+<meta name="apple-mobile-web-app-title" content="My Grocery 
+List">
 <title>My Grocery List</title>
+
 <style>
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+  }
+
   body {
-    margin: 0; background: #f4f7f1; color: #21362a;
+    margin: 0;
+    background: #f4f7f1;
+    color: #21362a;
     font: 17px system-ui, sans-serif;
   }
-  main { max-width: 600px; margin: auto; padding: 32px 20px; }
-  h1 { margin-bottom: 8px; }
-  .intro, #status { color: #536659; }
+
+  main {
+    max-width: 600px;
+    margin: auto;
+    padding: 32px 20px;
+  }
+
+  h1 {
+    margin-bottom: 8px;
+  }
+
+  .intro,
+  #status {
+    color: #536659;
+  }
+
   form {
-    display: grid; grid-template-columns: 1fr 80px;
-    gap: 12px; margin: 28px 0;
+    display: grid;
+    grid-template-columns: 1fr 80px;
+    gap: 12px;
+    margin: 28px 0;
   }
-  label { font-size: 14px; font-weight: 600; }
+
+  label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
   input {
-    display: block; width: 100%; padding: 14px;
-    margin-top: 6px; border: 1px solid #aab9ac;
-    border-radius: 12px; font: inherit; background: white;
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 6px;
+    border: 1px solid #aab9ac;
+    border-radius: 12px;
+    font: inherit;
+    background: white;
   }
+
   button {
-    min-height: 48px; border: 0; border-radius: 12px;
-    padding: 12px 16px; font: inherit; cursor: pointer;
-    color: white; background: #24734e;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font: inherit;
+    cursor: pointer;
+    color: white;
+    background: #24734e;
   }
-  form button { grid-column: 1 / -1; }
-  button:focus-visible, input:focus-visible {
-    outline: 3px solid #dc970b; outline-offset: 3px;
+
+  form button {
+    grid-column: 1 / -1;
   }
-  ul { list-style: none; padding: 0; }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 3px solid #dc970b;
+    outline-offset: 3px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
   li {
-    display: flex; align-items: center; gap: 12px;
-    padding: 16px; margin-bottom: 10px;
-    background: white; border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 14px;
   }
-  li input { width: 24px; height: 24px; margin: 0; }
-  .item { flex: 1; overflow-wrap: anywhere; }
-  .done .item { text-decoration: line-through; color: #718176; }
-  .remove { background: #edf2ed; color: #435448; }
-  #clear { width: 100%; background: #e2ebe1; color: #21362a; }
-  .note { font-size: 13px; color: #536659; margin-top: 24px; }
+
+  li input {
+    width: 24px;
+    height: 24px;
+    margin: 0;
+  }
+
+  .item {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .done .item {
+    text-decoration: line-through;
+    color: #718176;
+  }
+
+  .edit,
+  .remove {
+    background: #edf2ed;
+    color: #435448;
+  }
+
+  .edit {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .remove {
+    min-width: 44px;
+    padding: 10px;
+  }
+
+  #cancel-edit {
+    display: none;
+    background: #e2ebe1;
+    color: #21362a;
+  }
+
+  #clear {
+    width: 100%;
+    background: #e2ebe1;
+    color: #21362a;
+  }
+
+  .note {
+    font-size: 13px;
+    color: #536659;
+    margin-top: 24px;
+  }
 </style>
 </head>
+
 <body>
 <main>
   <h1>My Grocery List 🥬</h1>
   <p class="intro">A little less to remember.</p>
 
   <form id="form">
-    <label>Item
-      <input id="name" placeholder="e.g. Apples"
-             maxlength="150" required autocomplete="off">
+    <label>
+      Item
+      <input
+        id="name"
+        placeholder="e.g. Apples"
+        maxlength="150"
+        required
+        autocomplete="off"
+      >
     </label>
-    <label>Quantity
-      <input id="quantity" type="number" value="1"
-             min="1" max="999" step="1" required>
+
+    <label>
+      Quantity
+      <input
+        id="quantity"
+        type="number"
+        value="1"
+        min="1"
+        max="999"
+        step="1"
+        required
+      >
     </label>
-    <button>Add to list</button>
+
+    <button id="submit-button" type="submit">
+      Add to list
+    </button>
+
+    <button id="cancel-edit" type="button">
+      Cancel edit
+    </button>
   </form>
 
   <p id="status" role="status"></p>
+
   <ul id="list" aria-label="Groceries"></ul>
-  <button id="clear" type="button">Clear purchased items</button>
+
+  <button id="clear" type="button">
+    Clear purchased items
+  </button>
+
   <p class="note">
     Your list stays in this browser on this device.
     Clearing browser data will erase it.
@@ -78,20 +205,34 @@
 
 <script>
 const key = 'my-groceries-v1';
+
 const list = document.querySelector('#list');
 const status = document.querySelector('#status');
+const form = document.querySelector('#form');
 const nameInput = document.querySelector('#name');
 const quantityInput = document.querySelector('#quantity');
+const submitButton = 
+document.querySelector('#submit-button');
+const cancelEditButton = 
+document.querySelector('#cancel-edit');
+const clearButton = document.querySelector('#clear');
+
 let items = [];
 let storageAvailable = true;
+let editingIndex = null;
 
 try {
-  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  const saved = JSON.parse(
+    localStorage.getItem(key) || '[]'
+  );
+
   if (Array.isArray(saved)) {
     items = saved.filter(item =>
-      item && typeof item.name === 'string' &&
+      item &&
+      typeof item.name === 'string' &&
       Number.isInteger(item.quantity) &&
-      item.quantity >= 1 && item.quantity <= 999 &&
+      item.quantity >= 1 &&
+      item.quantity <= 999 &&
       typeof item.done === 'boolean'
     );
   }
@@ -101,87 +242,250 @@ try {
 
 function save() {
   try {
-    localStorage.setItem(key, JSON.stringify(items));
+    localStorage.setItem(
+      key,
+      JSON.stringify(items)
+    );
+
     storageAvailable = true;
   } catch {
     storageAvailable = false;
   }
+
   render();
+}
+
+function resetForm() {
+  editingIndex = null;
+
+  nameInput.value = '';
+  quantityInput.value = '1';
+
+  submitButton.textContent = 'Add to list';
+  cancelEditButton.style.display = 'none';
+}
+
+function startEdit(index) {
+  const item = items[index];
+
+  editingIndex = index;
+
+  nameInput.value = item.name;
+  quantityInput.value = item.quantity;
+
+  submitButton.textContent = 'Save changes';
+  cancelEditButton.style.display = 'block';
+
+  nameInput.focus();
+  nameInput.select();
 }
 
 function render() {
   list.replaceChildren();
-  const remaining = items.filter(item => !item.done).length;
-  status.textContent = items.length
-    ? `${remaining} of ${items.length} items left to buy`
-    : 'Your list is empty. Add your first item above.';
+
+  const remaining = items.filter(
+    item => !item.done
+  ).length;
+
+  if (items.length) {
+    status.textContent =
+      `${remaining} of ${items.length} items left to buy`;
+  } else {
+    status.textContent =
+      'Your list is empty. Add your first item above.';
+  }
+
   if (!storageAvailable) {
     status.textContent +=
-      ' Browser storage is unavailable; this list may not survive closing the page.';
+      ' Browser storage unavailable.';
   }
 
   items.forEach((item, index) => {
     const row = document.createElement('li');
-    row.className = item.done ? 'done' : '';
 
-    const check = document.createElement('input');
+    row.className =
+      item.done ? 'done' : '';
+
+    const check =
+      document.createElement('input');
+
     check.type = 'checkbox';
     check.checked = item.done;
-    check.setAttribute('aria-label', `Purchased ${item.name}`);
-    check.addEventListener('change', () => {
-      item.done = check.checked;
-      save();
-      const replacement = list.children[index];
-      if (replacement) replacement.querySelector('input').focus();
-    });
 
-    const text = document.createElement('span');
+    check.setAttribute(
+      'aria-label',
+      `Purchased ${item.name}`
+    );
+
+    check.addEventListener(
+      'change',
+      () => {
+        item.done = check.checked;
+        save();
+
+        const replacement =
+          list.children[index];
+
+        if (replacement) {
+          replacement
+            .querySelector('input')
+            .focus();
+        }
+      }
+    );
+
+    const text =
+      document.createElement('span');
+
     text.className = 'item';
-    text.textContent = `${item.name} × ${item.quantity}`;
+    text.textContent =
+      `${item.name} × ${item.quantity}`;
 
-    const remove = document.createElement('button');
+    const edit =
+      document.createElement('button');
+
+    edit.type = 'button';
+    edit.className = 'edit';
+    edit.textContent = 'Edit';
+
+    edit.setAttribute(
+      'aria-label',
+      `Edit ${item.name}`
+    );
+
+    edit.addEventListener(
+      'click',
+      () => {
+        startEdit(index);
+      }
+    );
+
+    const remove =
+      document.createElement('button');
+
     remove.type = 'button';
     remove.className = 'remove';
     remove.textContent = '✕';
-    remove.setAttribute('aria-label', `Remove ${item.name}`);
-    remove.addEventListener('click', () => {
-      items.splice(index, 1);
-      save();
-      const next = list.children[Math.min(index, items.length - 1)];
-      if (next) next.querySelector('.remove').focus();
-      else nameInput.focus();
-    });
 
-    row.append(check, text, remove);
+    remove.setAttribute(
+      'aria-label',
+      `Remove ${item.name}`
+    );
+
+    remove.addEventListener(
+      'click',
+      () => {
+        items.splice(index, 1);
+
+        if (editingIndex === index) {
+          resetForm();
+        } else if (
+          editingIndex !== null &&
+          editingIndex > index
+        ) {
+          editingIndex--;
+        }
+
+        save();
+
+        const next =
+          list.children[
+            Math.min(
+              index,
+              items.length - 1
+            )
+          ];
+
+        if (next) {
+          next
+            .querySelector('.remove')
+            .focus();
+        } else {
+          nameInput.focus();
+        }
+      }
+    );
+
+    row.append(
+      check,
+      text,
+      edit,
+      remove
+    );
+
     list.append(row);
   });
-  document.querySelector('#clear').disabled =
+
+  clearButton.disabled =
     !items.some(item => item.done);
 }
 
-document.querySelector('#form').addEventListener('submit', event => {
-  event.preventDefault();
-  const name = nameInput.value.trim();
-  if (!name) {
-    nameInput.focus();
-    return;
-  }
-  items.push({
-    name,
-    quantity: Number(quantityInput.value),
-    done: false
-  });
-  save();
-  nameInput.value = '';
-  quantityInput.value = '1';
-  nameInput.focus();
-});
+form.addEventListener(
+  'submit',
+  event => {
+    event.preventDefault();
 
-document.querySelector('#clear').addEventListener('click', () => {
-  items = items.filter(item => !item.done);
-  save();
-  nameInput.focus();
-});
+    const name =
+      nameInput.value.trim();
+
+    const quantity =
+      Number(quantityInput.value);
+
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 999
+    ) {
+      quantityInput.focus();
+      return;
+    }
+
+    if (editingIndex !== null) {
+      items[editingIndex].name =
+        name;
+
+      items[editingIndex].quantity =
+        quantity;
+    } else {
+      items.push({
+        name,
+        quantity,
+        done: false
+      });
+    }
+
+    resetForm();
+    save();
+    nameInput.focus();
+  }
+);
+
+cancelEditButton.addEventListener(
+  'click',
+  () => {
+    resetForm();
+    nameInput.focus();
+  }
+);
+
+clearButton.addEventListener(
+  'click',
+  () => {
+    items =
+      items.filter(
+        item => !item.done
+      );
+
+    resetForm();
+    save();
+    nameInput.focus();
+  }
+);
 
 render();
 </script>
