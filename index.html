@@ -419,7 +419,27 @@ function render() {
   clearButton.disabled =
     !items.some(item => item.done);
 }
+  function parseGroceryItem(text, defaultQuantity = 1) {
+  const match = text.trim().match(/^(\d+)\s*(.+)$/);
 
+  if (match) {
+    return {
+      quantity: Number(match[1]),
+      name: match[2].trim()
+    };
+  }
+
+  return {
+    quantity: defaultQuantity,
+    name: text.trim()
+  };
+}
+function parseGroceryList(text, defaultQuantity = 1) {
+  return text
+    .split(',')
+    .map(item => parseGroceryItem(item, defaultQuantity))
+    .filter(item => item.name);
+}
 form.addEventListener(
   'submit',
   event => {
@@ -452,11 +472,11 @@ form.addEventListener(
       items[editingIndex].quantity =
         quantity;
     } else {
-      items.push({
-        name,
-        quantity,
-        done: false
-      });
+const parsedItems = parseGroceryList(name, quantity);
+items.push(...parsedItems.map(item => ({
+  ...item,
+  done: false
+})));
     }
 
     resetForm();
