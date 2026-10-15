@@ -204,6 +204,20 @@ List">
 </main>
 
 <script type="module">
+
+const supabaseModuleUrl = 'https' + '://' + 'esm.sh' + 
+'/@supabase/supabase-js@2';
+
+const { createClient } = await import(supabaseModuleUrl);
+
+const supabaseUrl = 'https://zhineklvgjqqxhefjaqn.supabase.co';
+const supabaseKey = 'sb_publishable_4KrJqyihIQlh8t6vGMKqUQ_aEdztg8R';
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+const { data: { session } } = await supabaseClient.auth.getSession();
+if (!session) {
+  const { error } = await supabaseClient.auth.signInAnonymously();
+  if (error) console.error('Anonymous sign-in failed:', error);
+} 	
 const key = 'my-groceries-v1';
 
 const list = document.querySelector('#list');
