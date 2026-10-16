@@ -2,13 +2,13 @@ resetForm();<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, 
+<meta name="viewport" content="width=device-width,
 initial-scale=1">
 <meta name="theme-color" content="#24734e">
 <link rel="apple-touch-icon" href="grocery_app_icon.png">
-<link rel="icon" type="image/png" 
+<link rel="icon" type="image/png"
 href="grocery_app_icon.png">
-<meta name="apple-mobile-web-app-title" content="My Grocery 
+<meta name="apple-mobile-web-app-title" content="My Grocery
 List">
 <title>My Grocery List</title>
 
@@ -205,7 +205,7 @@ List">
 
 <script type="module">
 
-const supabaseModuleUrl = 'https' + '://' + 'esm.sh' + 
+const supabaseModuleUrl = 'https' + '://' + 'esm.sh' +
 '/@supabase/supabase-js@2';
 
 const { createClient } = await import(supabaseModuleUrl);
@@ -218,11 +218,11 @@ if (!session) {
   const { error } = await supabaseClient.auth.signInAnonymously();
   if (error) console.error('Anonymous sign-in failed:', error);
   session = (await supabaseClient.auth.getSession()).data.session;
-} 	
+}
 const sharedListKey = 'shared-grocery-list-id';
 let sharedListId = localStorage.getItem(sharedListKey);
 if (!sharedListId && session) {
-    const { data, error } = await 
+    const { data, error } = await
 supabaseClient.rpc('create_grocery_list');
   if (error) console.error('Shared list creation failed:', error);
   if (data) {
@@ -237,9 +237,9 @@ const status = document.querySelector('#status');
 const form = document.querySelector('#form');
 const nameInput = document.querySelector('#name');
 const quantityInput = document.querySelector('#quantity');
-const submitButton = 
+const submitButton =
 document.querySelector('#submit-button');
-const cancelEditButton = 
+const cancelEditButton =
 document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
 
@@ -341,9 +341,14 @@ function render() {
 
     check.addEventListener(
       'change',
-      () => {
+     async () => {
         item.done = check.checked;
-        save();
+const { error: updateError } = await supabaseClient
+.from('grocery_items')
+.update({ purchased: check.checked })
+.eq('id', item.id);
+if (updateError) console.error('Purchased status failed to update:', updateError);
+render();
 
         const replacement =
           list.children[index];
@@ -401,7 +406,7 @@ function render() {
 
         if (editingIndex === index) {
 
-resetForm();       
+resetForm();
  } else if (
           editingIndex !== null &&
           editingIndex > index
