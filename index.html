@@ -401,8 +401,15 @@ render();
 
     remove.addEventListener(
       'click',
-      () => {
+    async  () => {
+const { error: deleteError } = await supabaseClient
+.from('grocery_items')
+.delete()
+.eq('id', item.id);
+if (deleteError) console.error('Grocery item failed to remove:', deleteError);
+if (deleteError) return;
         items.splice(index, 1);
+        render();
 
         if (editingIndex === index) {
 
@@ -414,7 +421,6 @@ resetForm();
           editingIndex--;
         }
 
-        save();
 
         const next =
           list.children[
