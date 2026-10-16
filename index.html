@@ -1,4 +1,4 @@
-<!doctype html>
+resetForm();<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -244,27 +244,23 @@ document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
 
 let items = [];
+const { data: cloudItems, error: loadError } = await supabaseClient
+  .from('grocery_items')
+  .select('id, item_name, quantity, purchased')
+  .eq('list_id', sharedListId);
+if (loadError) console.error('Grocery items failed to load:', loadError);
+if (cloudItems) {
+  items = cloudItems.map(item => ({
+    id: item.id,
+    name: item.item_name,
+    quantity: item.quantity,
+    done: item.purchased
+  }));
+}
 let storageAvailable = true;
 let editingIndex = null;
 
-try {
-  const saved = JSON.parse(
-    localStorage.getItem(key) || '[]'
-  );
 
-  if (Array.isArray(saved)) {
-    items = saved.filter(item =>
-      item &&
-      typeof item.name === 'string' &&
-      Number.isInteger(item.quantity) &&
-      item.quantity >= 1 &&
-      item.quantity <= 999 &&
-      typeof item.done === 'boolean'
-    );
-  }
-} catch {
-  storageAvailable = false;
-}
 
 function save() {
   try {
@@ -404,8 +400,9 @@ function render() {
         items.splice(index, 1);
 
         if (editingIndex === index) {
-          resetForm();
-        } else if (
+
+resetForm();       
+ } else if (
           editingIndex !== null &&
           editingIndex > index
         ) {
@@ -448,7 +445,7 @@ function render() {
 
 form.addEventListener(
   'submit',
-  event => {
+async event => {
     event.preventDefault();
 
     const name =
@@ -478,15 +475,29 @@ form.addEventListener(
       items[editingIndex].quantity =
         quantity;
     } else {
-      items.push({
-        name,
-        quantity,
-        done: false
-      });
-    }
+const { data: newItem, error: addError } = await supabaseClient
+.from('grocery_items')
+.insert({
+item_name: name,
+quantity: quantity,
+purchased: false,
+list_id: sharedListId,
+owner_id: session.user.id
+  })
+.select('id, item_name, quantity, purchased')
+.single();
+if (addError) console.error('Grocery item failed to add:', addError);
+if (newItem) {
+items.push({
+id: newItem.id,
+name: newItem.item_name,
+quantity: newItem.quantity,
+done: newItem.purchased
+});
+}
 
+}
     resetForm();
-    save();
     nameInput.focus();
   }
 );
