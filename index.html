@@ -219,6 +219,17 @@ if (!session) {
   if (error) console.error('Anonymous sign-in failed:', error);
   session = (await supabaseClient.auth.getSession()).data.session;
 } 	
+const sharedListKey = 'shared-grocery-list-id';
+let sharedListId = localStorage.getItem(sharedListKey);
+if (!sharedListId && session) {
+    const { data, error } = await 
+supabaseClient.rpc('create_grocery_list');
+  if (error) console.error('Shared list creation failed:', error);
+  if (data) {
+    sharedListId = data;
+    localStorage.setItem(sharedListKey, sharedListId);
+  }
+}
 const key = 'my-groceries-v1';
 
 const list = document.querySelector('#list');
