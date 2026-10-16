@@ -480,11 +480,19 @@ async event => {
     }
 
     if (editingIndex !== null) {
+const itemToEdit = items[editingIndex];
+const { error: editError } = await supabaseClient
+.from('grocery_items')
+.update({ item_name: name, quantity: quantity })
+.eq('id', itemToEdit.id);
+if (editError) console.error('Grocery item failed to update:', editError);
+if (editError) return;
       items[editingIndex].name =
         name;
 
       items[editingIndex].quantity =
         quantity;
+render();
     } else {
 const { data: newItem, error: addError } = await supabaseClient
 .from('grocery_items')
