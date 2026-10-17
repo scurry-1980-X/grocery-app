@@ -257,6 +257,7 @@ function save() {
 
 function resetForm() {
   editingIndex = null;
+  nameInput.setCustomValidity('');
 
   nameInput.value = '';
   quantityInput.value = '1';
@@ -269,6 +270,7 @@ function startEdit(index) {
   const item = items[index];
 
   editingIndex = index;
+  nameInput.setCustomValidity('');
 
   nameInput.value = item.name;
   quantityInput.value = item.quantity;
@@ -419,27 +421,42 @@ function render() {
   clearButton.disabled =
     !items.some(item => item.done);
 }
-  function parseGroceryItem(text, defaultQuantity = 1) {
-  const match = text.trim().match(/^(\d+)\s*(.+)$/);
+function parseGroceryItem(text, defaultQuantity = 1) {
+  const name = text.trim();
+  // Require whitespace so names such as "7up" and "123" stay intact.
+  const match = name.match(/^([+-]?\d+(?:\.\d+)?)\s+(.+)$/);
+  const quantity = match ? Number(match[1]) : defaultQuantity;
 
-  if (match) {
-    return {
-      quantity: Number(match[1]),
-      name: match[2].trim()
-    };
+  if (
+    (match && !/^\d+$/.test(match[1])) ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    quantity > 999
+  ) {
+    throw new Error('Use whole-number quantities from 1 to 999.');
   }
 
-  return {
-    quantity: defaultQuantity,
-    name: text.trim()
-  };
+  return { quantity, name: match ? match[2].trim() : name };
 }
+
 function parseGroceryList(text, defaultQuantity = 1) {
-  return text
+  const parsed = text
     .split(',')
-    .map(item => parseGroceryItem(item, defaultQuantity))
-    .filter(item => item.name);
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => parseGroceryItem(item, defaultQuantity));
+
+  if (!parsed.length) {
+    throw new Error('Enter at least one grocery item.');
+  }
+
+  return parsed;
 }
+
+nameInput.addEventListener('input', () => {
+  nameInput.setCustomValidity('');
+});
+
 form.addEventListener(
   'submit',
   event => {
@@ -472,11 +489,20 @@ form.addEventListener(
       items[editingIndex].quantity =
         quantity;
     } else {
-const parsedItems = parseGroceryList(name, quantity);
-items.push(...parsedItems.map(item => ({
-  ...item,
-  done: false
-})));
+      let parsedItems;
+      try {
+        parsedItems = parseGroceryList(name, quantity);
+      } catch (error) {
+        nameInput.setCustomValidity(error.message);
+        nameInput.reportValidity();
+        nameInput.focus();
+        return;
+      }
+
+      items.push(...parsedItems.map(item => ({
+        ...item,
+        done: false
+      })));
     }
 
     resetForm();
