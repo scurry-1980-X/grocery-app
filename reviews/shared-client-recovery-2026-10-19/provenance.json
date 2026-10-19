@@ -1,0 +1,311 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "source_thread": {
+    "id": "01a14a9c-e1f3-75c4-8035-332a49c5f036",
+    "title": "Set up grocery-app",
+    "host": "durable",
+    "latest_review_turn": "01a14edd-695a-72bb-bf7d-dabd9d1cc60e"
+  },
+  "historical_original_files_verified": false,
+  "source_records": [
+    {
+      "record": "exec-80fb710d-c92d-4c24-99bc-b2194dfade9c",
+      "turn": "01a14b4b-dd32-710e-ace5-a1348e93596c"
+    },
+    {
+      "record": "exec-59d8dab4-ba39-4891-81d2-824d127f8d80",
+      "turn": "01a14b4b-dd32-710e-ace5-a1348e93596c"
+    },
+    {
+      "record": "exec-e651dab3-b8b2-48bc-9829-852ed231aec1",
+      "turn": "01a14b4b-dd32-710e-ace5-a1348e93596c"
+    },
+    {
+      "record": "exec-7004a639-86ff-4641-916c-2f3f1bbfcb3d",
+      "turn": "01a14b4b-dd32-710e-ace5-a1348e93596c"
+    },
+    {
+      "record": "exec-17c9bdca-a677-43f9-b8d1-86d853c18452",
+      "turn": "01a14b4b-dd32-710e-ace5-a1348e93596c"
+    },
+    {
+      "record": "exec-497c3377-2fe8-4a8c-ad3a-3bc39867d3cb",
+      "turn": "01a14d31-e260-752e-ad05-30ad6b0ba097"
+    },
+    {
+      "record": "exec-e520e6ab-ef49-4602-82c6-c81eadef20c3",
+      "turn": "01a14d31-e260-752e-ad05-30ad6b0ba097"
+    },
+    {
+      "record": "exec-a350dd82-4277-4691-be41-cab6b34b2203",
+      "turn": "01a14d31-e260-752e-ad05-30ad6b0ba097"
+    },
+    {
+      "record": "exec-e9fc7ee1-7f10-4d8d-917a-935e6bb90b78",
+      "turn": "01a14d46-7cea-70a9-977d-7311d2555aa1"
+    },
+    {
+      "record": "exec-ff29969d-a419-42ae-b4a9-3c60434eb540",
+      "turn": "01a14d7e-b7e2-76d1-aa49-de287ac37470"
+    },
+    {
+      "record": "exec-bf9482c6-1fd5-459d-95e5-0aeda9c5b9df",
+      "turn": "01a14d7e-b7e2-76d1-aa49-de287ac37470"
+    },
+    {
+      "record": "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6",
+      "turn": "01a14d7e-b7e2-76d1-aa49-de287ac37470"
+    },
+    {
+      "record": "exec-774614bb-d93b-4057-af1c-ad1662c26992",
+      "turn": "01a14d7e-b7e2-76d1-aa49-de287ac37470"
+    },
+    {
+      "record": "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8",
+      "turn": "01a14edd-695a-72bb-bf7d-dabd9d1cc60e"
+    },
+    {
+      "record": "exec-7f78e484-7ddf-497d-8bed-f2c637341141",
+      "turn": "01a14edd-695a-72bb-bf7d-dabd9d1cc60e"
+    }
+  ],
+  "reconstruction_baselines": {
+    "index.html": "70f610505dccc6c365884f788f4ce9ac4da2bbd9c04d108ee22a3af16fbd6539",
+    "/workspace/attachments/grocery-live-validation/runner.js": "afb7f66168cfa962d73aef86064b2f74a64b1232407c8d0888295f49fe14584e",
+    "/workspace/attachments/grocery-live-validation/grocery-live-validation.py": "c44f89fe36dd30179b0960dfabd2595a6941cf60ffb932cba633db32195adf4c",
+    "/workspace/attachments/grocery-live-validation/START-HERE.txt": "d3f2045f5fdb3c3825bacf3eaca31760794364a277957a9578581d5238bf5bc7"
+  },
+  "reconciliations": {
+    "classification": "reconstructed source, not original-file verification",
+    "reconciliations": [
+      {
+        "section": "session-error handling",
+        "source": "exec-497c3377-2fe8-4a8c-ad3a-3bc39867d3cb",
+        "evidence": "exact recorded replacement confirmed by final read prefix"
+      },
+      {
+        "section": "finishReceipt including captured receipt key",
+        "source": "exec-e9fc7ee1-7f10-4d8d-917a-935e6bb90b78",
+        "evidence": "complete function copied from later read; final numbered inventory confirms resulting line positions"
+      }
+    ],
+    "before_sha256": "a68da56c7b697d4a41e154447cf754e838b27944b25c753ab181db9f00400bcc",
+    "after_sha256": "b13dc088f53be705653a8417204291aa7bfe8ca298071593c73f0899701c416a",
+    "latest_prefix_bytes": 9141,
+    "latest_prefix_exact_match": true,
+    "final_numbered_call_sites_matched": 15,
+    "line_count": 526
+  },
+  "verification": {
+    "complete_protocol_read_exact": true,
+    "shared_prefix_exact": true,
+    "shared_numbered_call_sites": 15,
+    "runner_numbered_call_sites": 15,
+    "dependency_files_equal_local_zip": true,
+    "offline_tests_passed": 5,
+    "offline_tests_failed": 0,
+    "live_integration_executed": false,
+    "migrations_executed": false,
+    "production_accessed": false
+  },
+  "missing": [
+    "original final file hashes/immutable release commit",
+    "active disposable test configuration",
+    "complete original integration/browser test harness",
+    "test-target adaptation for historical project/account-restricted runner"
+  ],
+  "artifacts": [
+    {
+      "path": "README.md",
+      "classification": "new_review_documentation",
+      "sha256": "4d8d7cd4ccca2c6d2c4a1d3fbfbc1f64723784431c88bc4daabb7eec1e5e2ded",
+      "bytes": 10849,
+      "sources": []
+    },
+    {
+      "path": "client/grocery_app_icon.png",
+      "classification": "unchanged_repository_asset",
+      "sha256": "b49a324d0ac73b2770ec3dd5cc178d7f3a133a8cd0a0edd12525083a5f2fdd48",
+      "bytes": 1565059,
+      "sources": [
+        "git:1b47db3:grocery_app_icon.png"
+      ]
+    },
+    {
+      "path": "client/index.html",
+      "classification": "reconstructed_git_baseline_plus_recorded_edits",
+      "sha256": "01f9417918e61d7abc58836ed0b2aa1f1c9f927576b0db2a12f06d267a80d580",
+      "bytes": 13258,
+      "sources": [
+        "git:a01bd5a:index.html",
+        "exec-80fb710d-c92d-4c24-99bc-b2194dfade9c",
+        "exec-e520e6ab-ef49-4602-82c6-c81eadef20c3",
+        "exec-ff29969d-a419-42ae-b4a9-3c60434eb540",
+        "exec-bf9482c6-1fd5-459d-95e5-0aeda9c5b9df"
+      ]
+    },
+    {
+      "path": "client/mutation-protocol.js",
+      "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+      "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+      "bytes": 2859,
+      "sources": [
+        "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8"
+      ]
+    },
+    {
+      "path": "client/shared-config.js",
+      "classification": "new_inert_review_placeholder_not_recovered_configuration",
+      "sha256": "c0831f9b44f1ed6b93ec9661191825b45fe0fbda5442796803b0cab489dcc0a3",
+      "bytes": 235,
+      "sources": []
+    },
+    {
+      "path": "client/shared.js",
+      "classification": "reconstructed_complete_source_not_original_file",
+      "sha256": "b13dc088f53be705653a8417204291aa7bfe8ca298071593c73f0899701c416a",
+      "bytes": 28348,
+      "sources": [
+        "exec-59d8dab4-ba39-4891-81d2-824d127f8d80",
+        "exec-e651dab3-b8b2-48bc-9829-852ed231aec1",
+        "exec-7004a639-86ff-4641-916c-2f3f1bbfcb3d",
+        "exec-17c9bdca-a677-43f9-b8d1-86d853c18452",
+        "exec-497c3377-2fe8-4a8c-ad3a-3bc39867d3cb",
+        "exec-e520e6ab-ef49-4602-82c6-c81eadef20c3",
+        "exec-a350dd82-4277-4691-be41-cab6b34b2203",
+        "exec-ff29969d-a419-42ae-b4a9-3c60434eb540",
+        "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6",
+        "exec-e9fc7ee1-7f10-4d8d-917a-935e6bb90b78",
+        "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8",
+        "exec-7f78e484-7ddf-497d-8bed-f2c637341141"
+      ]
+    },
+    {
+      "path": "client/vendor/README.md",
+      "classification": "new_review_documentation",
+      "sha256": "108e6e772c14201215e61b1410abb78698b1f9541a1ea77736ec5b01b8818499",
+      "bytes": 756,
+      "sources": []
+    },
+    {
+      "path": "client/vendor/SUPABASE-LICENSE",
+      "classification": "unchanged_local_dependency_artifact",
+      "sha256": "334dd6820e2eaeab2064e7c59001b810566728a28a41a7c1dbf69bbee17d0936",
+      "bytes": 1065,
+      "sources": [
+        "local-download:grocery-live-validation/SUPABASE-LICENSE"
+      ]
+    },
+    {
+      "path": "client/vendor/supabase-2.118.0.js",
+      "classification": "unchanged_local_dependency_artifact",
+      "sha256": "ee3be8de192b97cb1d73d1e95d6b82bb1f6b658c0f97c4ef757fc331996ed3d3",
+      "bytes": 218252,
+      "sources": [
+        "local-download:grocery-live-validation/supabase.js"
+      ]
+    },
+    {
+      "path": "runner/START-HERE.txt",
+      "classification": "reconstructed_local_baseline_plus_recorded_edits",
+      "sha256": "67e32179226e5543ab9512afb5c1e179f12c47675fc0cb20b18e6a821ac09e65",
+      "bytes": 2291,
+      "sources": [
+        "local-download:grocery-live-validation/START-HERE.txt",
+        "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6"
+      ]
+    },
+    {
+      "path": "runner/SUPABASE-LICENSE",
+      "classification": "unchanged_local_dependency_artifact",
+      "sha256": "334dd6820e2eaeab2064e7c59001b810566728a28a41a7c1dbf69bbee17d0936",
+      "bytes": 1065,
+      "sources": [
+        "local-download:grocery-live-validation/SUPABASE-LICENSE"
+      ]
+    },
+    {
+      "path": "runner/grocery-live-validation.py",
+      "classification": "sanitized_reconstruction_local_baseline_plus_recorded_edits",
+      "sha256": "6681d4b667ce9a34338c9ec42efa8f1991c6499391a3f504774b270cc1d066a8",
+      "bytes": 4596,
+      "sources": [
+        "local-download:grocery-live-validation/grocery-live-validation.py",
+        "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6"
+      ],
+      "pre_sanitization_sha256": "e133caa9d02a0832dff99dac8a56a0afea777b3330121fe528ba0f03a36d8771",
+      "transformations": [
+        "Replaced production project and personal account literals where present with documented .invalid placeholders; added inline comments; retained guards and mutation logic."
+      ]
+    },
+    {
+      "path": "runner/mutation-protocol.js",
+      "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+      "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+      "bytes": 2859,
+      "sources": [
+        "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8"
+      ]
+    },
+    {
+      "path": "runner/public-config.json",
+      "classification": "new_inert_review_placeholder_not_recovered_configuration",
+      "sha256": "a670497b46734991c580191477de3fa97c0745af08f2d4d850a37f26c29fa5ba",
+      "bytes": 31,
+      "sources": []
+    },
+    {
+      "path": "runner/runner.js",
+      "classification": "sanitized_reconstruction_local_baseline_plus_recorded_edits",
+      "sha256": "c2ae6d7dfcf79e136af0662e5e78b5c2e9fad8115aee2f133e0e8a7736775a2e",
+      "bytes": 15720,
+      "sources": [
+        "local-download:grocery-live-validation/runner.js",
+        "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6"
+      ],
+      "pre_sanitization_sha256": "86af93b58bf258d85c7152961b634a754f165884166d1a572c20d28f9a894189",
+      "transformations": [
+        "Replaced production project and personal account literals where present with documented .invalid placeholders; added inline comments; retained guards and mutation logic."
+      ]
+    },
+    {
+      "path": "runner/supabase.js",
+      "classification": "unchanged_local_dependency_artifact",
+      "sha256": "ee3be8de192b97cb1d73d1e95d6b82bb1f6b658c0f97c4ef757fc331996ed3d3",
+      "bytes": 218252,
+      "sources": [
+        "local-download:grocery-live-validation/supabase.js"
+      ]
+    },
+    {
+      "path": "tools/build-validation-bundle.recovered.py",
+      "classification": "decoded_creation_record_reference_only_layout_not_adapted",
+      "sha256": "d00f9e62a3f8299f5149f954d34569193c46b5ea0cb6d995f8d4e0b8bc311c0b",
+      "bytes": 1633,
+      "sources": [
+        "exec-774614bb-d93b-4057-af1c-ad1662c26992"
+      ]
+    },
+    {
+      "path": "verify-offline.cjs",
+      "classification": "new_offline_recovery_checks_not_historical_test_suite",
+      "sha256": "b59972b14065fe85187c6071d75fe40e7674564cf9676f8938f64583d838b2f9",
+      "bytes": 5908,
+      "sources": []
+    }
+  ],
+  "sanitization": {
+    "date": "2026-10-19",
+    "scope": "Runner project/account literals replaced with documented non-operational placeholders; no mutation logic changed.",
+    "original_sensitive_literals_included": false,
+    "active_configuration": "URL and publishableKey remain empty in both configuration files",
+    "placeholders": [
+      "https://grocery-review.invalid",
+      "account-1@example.invalid",
+      "account-2@example.invalid"
+    ],
+    "line_counts_preserved": true,
+    "historical_baseline_hashes": "Describe pre-sanitization source evidence; artifacts hashes describe current files."
+  }
+}

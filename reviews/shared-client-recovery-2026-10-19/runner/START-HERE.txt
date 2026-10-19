@@ -1,0 +1,39 @@
+Controlled local Grocery App live validation
+
+This runner uses the app's existing pinned Supabase SDK. No installation or
+new runtime dependency is required beyond Python 3 already used by the helper.
+
+1. Stop the OLD callback server with Control-C in its Terminal.
+2. Extract this folder into Downloads.
+3. Run:
+   cd "$HOME/Downloads/grocery-live-validation"
+   python3 -B grocery-live-validation.py
+4. Open http://localhost:3000 on this same Mac. Confirm READY with Codex.
+   Do not press Run yet. No email is sent by this runner.
+
+The old identity-only helper session cannot be reused by this runner. Fresh
+magic-link sign-ins will be needed for both approved existing accounts.
+Open both email links in separate tabs of the SAME browser/profile on this Mac,
+and keep the runner Terminal and all verified tabs open. No tokens are shared
+with Codex, saved to storage, or printed. Account passwords are not used.
+
+After both accounts are verified and Codex instructs you, the Run button performs
+only the approved one-list test. It creates exactly one test list and invitation,
+joins the second user, checks memberships and used-invite rejection, subscribes
+to Realtime, inserts one Milestone 2 Test Item, and marks it purchased from the
+other account. It requires both INSERT and UPDATE events, without polling.
+It stops at the first failure. Do not retry a failed/uncertain run.
+
+The test list/item are retained; there is no cleanup, import, delete, clear,
+pre-existing-list discovery, signup, email sending or configuration change.
+The displayed results can be shared; never share the sign-in email links.
+The test does not establish nonmember access denial or iPhone compatibility.
+
+Updated replay-safe protocol: requires approved migrations 002/003/004 before use.
+Do not run a live test until Codex and the product owner authorize that phase.
+Only operation metadata, request IDs and fixed test-item receipts persist in
+browser storage. Authentication and invitation tokens are never saved by the
+runner. Do not clear browser storage after an uncertain operation; stop for
+reconciliation. A refresh does not resume the test automatically. The app and
+runner share mutation-protocol.js. A current secure-context browser supporting
+Web Locks is required for coordinated shared writes.

@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, 
+initial-scale=1">
+<meta name="theme-color" content="#24734e">
+<link rel="apple-touch-icon" href="grocery_app_icon.png">
+<link rel="icon" type="image/png" 
+href="grocery_app_icon.png">
+<meta name="apple-mobile-web-app-title" content="My Grocery 
+List">
+<title>My Grocery List</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    background: #f4f7f1;
+    color: #21362a;
+    font: 17px system-ui, sans-serif;
+  }
+
+  main {
+    max-width: 600px;
+    margin: auto;
+    padding: 32px 20px;
+  }
+
+  h1 {
+    margin-bottom: 8px;
+  }
+
+  .intro,
+  #status {
+    color: #536659;
+  }
+
+  form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 80px;
+    gap: 12px;
+    margin: 28px 0;
+  }
+
+  label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  input {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 6px;
+    border: 1px solid #aab9ac;
+    border-radius: 12px;
+    font: inherit;
+    background: white;
+  }
+
+  button {
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font: inherit;
+    cursor: pointer;
+    color: white;
+    background: #24734e;
+  }
+
+  form button {
+    grid-column: 1 / -1;
+  }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 3px solid #dc970b;
+    outline-offset: 3px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 14px;
+  }
+
+  li input {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    margin: 0;
+  }
+
+  .item {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .done .item {
+    text-decoration: line-through;
+    color: #718176;
+  }
+
+  .edit,
+  .remove {
+    background: #edf2ed;
+    color: #435448;
+  }
+
+  .edit {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .remove {
+    min-width: 44px;
+    padding: 10px;
+  }
+
+  #cancel-edit {
+    display: none;
+    background: #e2ebe1;
+    color: #21362a;
+  }
+
+  #clear {
+    width: 100%;
+    background: #e2ebe1;
+    color: #21362a;
+  }
+
+  .note {
+    font-size: 13px;
+    color: #536659;
+    margin-top: 24px;
+  }
+  [hidden] { display: none !important; }
+  nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  nav [aria-pressed="false"] { background: #e2ebe1; color: #21362a; }
+  #account-form, #join-form { grid-template-columns: 1fr; }
+  label, input, .item { min-width: 0; }
+  #signed-in-as { overflow-wrap: anywhere; }
+  select { min-height: 48px; display: block; max-width: 100%; padding: 12px; font: inherit; }
+  #invitation-result { overflow-wrap: anywhere; user-select: all; }
+  button:disabled { opacity: .6; cursor: default; }
+</style>
+</head>
+
+<body>
+<main>
+  <h1>My Grocery List 🥬</h1>
+  <p class="intro">A little less to remember.</p>
+
+  <nav aria-label="List mode">
+    <button id="local-mode-button" type="button" aria-pressed="true">Local list</button>
+    <button id="shared-mode-button" type="button" aria-pressed="false">Shared list</button>
+  </nav>
+  <section id="local-mode" aria-label="Local grocery list">
+  <form id="form">
+    <label>
+      Item
+      <input
+        id="name"
+        placeholder="e.g. Apples"
+        maxlength="150"
+        required
+        autocomplete="off"
+      >
+    </label>
+
+    <label>
+      Quantity
+      <input
+        id="quantity"
+        type="number"
+        value="1"
+        min="1"
+        max="999"
+        step="1"
+        required
+      >
+    </label>
+
+    <button id="submit-button" type="submit">
+      Add to list
+    </button>
+
+    <button id="cancel-edit" type="button">
+      Cancel edit
+    </button>
+  </form>
+
+  <p id="status" role="status"></p>
+
+  <ul id="list" aria-label="Groceries"></ul>
+
+  <button id="clear" type="button">
+    Clear purchased items
+  </button>
+
+  <p class="note">
+    Your list stays in this browser on this device.
+    Clearing browser data will erase it.
+  </p>
+  </section>
+  <section id="shared-mode" aria-label="Shared grocery list" hidden>
+    <h2>Private shared list</h2>
+    <p id="cloud-status" role="status" aria-live="polite">Sign in to share a list. Your local list stays on this device.</p>
+    <p class="note">Email confirmation is required for new accounts. Email delivery and password recovery still need verification.</p>
+    <form id="account-form">
+      <label>Email<input id="account-email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+      <label>Password<input id="account-password" type="password" autocomplete="current-password" minlength="6" required></label>
+      <button type="submit">Sign in</button>
+      <button id="sign-up" type="button">Create account</button>
+    </form>
+    <div id="account-session" hidden>
+      <p id="signed-in-as"></p>
+      <button id="sign-out" type="button">Sign out</button>
+      <label>Shared list<select id="cloud-lists" aria-label="Shared list"></select></label>
+      <button id="refresh-lists" type="button">Refresh lists</button>
+      <button id="create-list" type="button">Create private list</button>
+      <form id="join-form">
+        <label>Invitation code<input id="invite-code" autocomplete="off" required></label>
+        <button type="submit">Join list</button>
+      </form>
+      <button id="check-pending" type="button" hidden>Check / resume unconfirmed operation</button>
+      <div id="selected-list" hidden>
+        <button id="create-invite" type="button">Create invitation</button>
+        <p id="invitation-result" role="status"></p>
+        <p class="note">Share an invitation privately. It expires after seven days and can be used once.</p>
+        <form id="cloud-form">
+          <label>Item<input id="cloud-name" maxlength="150" required autocomplete="off"></label>
+          <label>Quantity<input id="cloud-quantity" type="number" min="1" max="999" step="1" value="1" required></label>
+          <button id="cloud-submit" type="submit">Add to shared list</button>
+          <button id="cloud-cancel" type="button" hidden>Cancel edit</button>
+        </form>
+        <p id="cloud-count" role="status"></p>
+        <ul id="cloud-items" aria-label="Shared groceries"></ul>
+        <button id="cloud-clear" type="button">Clear shared purchased items</button>
+        <button id="cloud-refresh" type="button">Refresh shared list</button>
+        <button id="cloud-import" type="button">Import local groceries</button>
+        <p class="note">Local groceries are never automatically imported or erased. Shared changes need a connection.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const key = 'my-groceries-v1';
+
+const list = document.querySelector('#list');
+const status = document.querySelector('#status');
+const form = document.querySelector('#form');
+const nameInput = document.querySelector('#name');
+const quantityInput = document.querySelector('#quantity');
+const submitButton = 
+document.querySelector('#submit-button');
+const cancelEditButton = 
+document.querySelector('#cancel-edit');
+const clearButton = document.querySelector('#clear');
+
+let items = [];
+let storageAvailable = true;
+let editingIndex = null;
+
+try {
+  const saved = JSON.parse(
+    localStorage.getItem(key) || '[]'
+  );
+
+  if (Array.isArray(saved)) {
+    items = saved.filter(item =>
+      item &&
+      typeof item.name === 'string' &&
+      Number.isInteger(item.quantity) &&
+      item.quantity >= 1 &&
+      item.quantity <= 999 &&
+      typeof item.done === 'boolean'
+    );
+  }
+} catch {
+  storageAvailable = false;
+}
+
+function save() {
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify(items)
+    );
+
+    storageAvailable = true;
+  } catch {
+    storageAvailable = false;
+  }
+
+  render();
+}
+
+function resetForm() {
+  editingIndex = null;
+  nameInput.setCustomValidity('');
+
+  nameInput.value = '';
+  quantityInput.value = '1';
+
+  submitButton.textContent = 'Add to list';
+  cancelEditButton.style.display = 'none';
+}
+
+function startEdit(index) {
+  const item = items[index];
+
+  editingIndex = index;
+  nameInput.setCustomValidity('');
+
+  nameInput.value = item.name;
+  quantityInput.value = item.quantity;
+
+  submitButton.textContent = 'Save changes';
+  cancelEditButton.style.display = 'block';
+
+  nameInput.focus();
+  nameInput.select();
+}
+
+function render() {
+  list.replaceChildren();
+
+  const remaining = items.filter(
+    item => !item.done
+  ).length;
+
+  if (items.length) {
+    status.textContent =
+      `${remaining} of ${items.length} items left to buy`;
+  } else {
+    status.textContent =
+      'Your list is empty. Add your first item above.';
+  }
+
+  if (!storageAvailable) {
+    status.textContent +=
+      ' Browser storage unavailable.';
+  }
+
+  items.forEach((item, index) => {
+    const row = document.createElement('li');
+
+    row.className =
+      item.done ? 'done' : '';
+
+    const check =
+      document.createElement('input');
+
+    check.type = 'checkbox';
+    check.checked = item.done;
+
+    check.setAttribute(
+      'aria-label',
+      `Purchased ${item.name}`
+    );
+
+    check.addEventListener(
+      'change',
+      () => {
+        item.done = check.checked;
+        save();
+
+        const replacement =
+          list.children[index];
+
+        if (replacement) {
+          replacement
+            .querySelector('input')
+            .focus();
+        }
+      }
+    );
+
+    const text =
+      document.createElement('span');
+
+    text.className = 'item';
+    text.textContent =
+      `${item.name} × ${item.quantity}`;
+
+    const edit =
+      document.createElement('button');
+
+    edit.type = 'button';
+    edit.className = 'edit';
+    edit.textContent = 'Edit';
+
+    edit.setAttribute(
+      'aria-label',
+      `Edit ${item.name}`
+    );
+
+    edit.addEventListener(
+      'click',
+      () => {
+        startEdit(index);
+      }
+    );
+
+    const remove =
+      document.createElement('button');
+
+    remove.type = 'button';
+    remove.className = 'remove';
+    remove.textContent = '✕';
+
+    remove.setAttribute(
+      'aria-label',
+      `Remove ${item.name}`
+    );
+
+    remove.addEventListener(
+      'click',
+      () => {
+        items.splice(index, 1);
+
+        if (editingIndex === index) {
+          resetForm();
+        } else if (
+          editingIndex !== null &&
+          editingIndex > index
+        ) {
+          editingIndex--;
+        }
+
+        save();
+
+        const next =
+          list.children[
+            Math.min(
+              index,
+              items.length - 1
+            )
+          ];
+
+        if (next) {
+          next
+            .querySelector('.remove')
+            .focus();
+        } else {
+          nameInput.focus();
+        }
+      }
+    );
+
+    row.append(
+      check,
+      text,
+      edit,
+      remove
+    );
+
+    list.append(row);
+  });
+
+  clearButton.disabled =
+    !items.some(item => item.done);
+}
+function parseGroceryItem(text, defaultQuantity = 1) {
+  const name = text.trim();
+  // Require whitespace so names such as "7up" and "123" stay intact.
+  const match = name.match(/^([+-]?\d+(?:\.\d+)?)\s+(.+)$/);
+  const quantity = match ? Number(match[1]) : defaultQuantity;
+
+  if (
+    (match && !/^\d+$/.test(match[1])) ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    quantity > 999
+  ) {
+    throw new Error('Use whole-number quantities from 1 to 999.');
+  }
+
+  return { quantity, name: match ? match[2].trim() : name };
+}
+
+function parseGroceryList(text, defaultQuantity = 1) {
+  const parsed = text
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => parseGroceryItem(item, defaultQuantity));
+
+  if (!parsed.length) {
+    throw new Error('Enter at least one grocery item.');
+  }
+
+  return parsed;
+}
+
+nameInput.addEventListener('input', () => {
+  nameInput.setCustomValidity('');
+});
+
+form.addEventListener(
+  'submit',
+  event => {
+    event.preventDefault();
+
+    const name =
+      nameInput.value.trim();
+
+    const quantity =
+      Number(quantityInput.value);
+
+    if (!name) {
+      nameInput.focus();
+      return;
+    }
+
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 999
+    ) {
+      quantityInput.focus();
+      return;
+    }
+
+    if (editingIndex !== null) {
+      items[editingIndex].name =
+        name;
+
+      items[editingIndex].quantity =
+        quantity;
+    } else {
+      let parsedItems;
+      try {
+        parsedItems = parseGroceryList(name, quantity);
+      } catch (error) {
+        nameInput.setCustomValidity(error.message);
+        nameInput.reportValidity();
+        nameInput.focus();
+        return;
+      }
+
+      items.push(...parsedItems.map(item => ({
+        ...item,
+        done: false
+      })));
+    }
+
+    resetForm();
+    save();
+    nameInput.focus();
+  }
+);
+
+cancelEditButton.addEventListener(
+  'click',
+  () => {
+    resetForm();
+    nameInput.focus();
+  }
+);
+
+clearButton.addEventListener(
+  'click',
+  () => {
+    items =
+      items.filter(
+        item => !item.done
+      );
+
+    resetForm();
+    save();
+    nameInput.focus();
+  }
+);
+
+render();
+</script>
+<script src="shared-config.js"></script>
+<script src="mutation-protocol.js"></script>
+<script src="shared.js"></script>
+</body>
+</html>
