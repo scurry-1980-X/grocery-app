@@ -1,0 +1,9 @@
+# Private local restore artifacts and database backups must never be committed.
+.restore-validation/
+*.dump
+*.backup
+*.sql.gz
+__pycache__/
+*.pyc
+.env
+.env.*

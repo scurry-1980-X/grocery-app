@@ -88,6 +88,11 @@ The icon supports Home Screen branding but does not itself make an offline PWA.
 
 ## Development and preservation
 
+For the separate pre-Migration-003 Supabase backup, see the
+[isolated restore verification runbook](docs/ISOLATED_RESTORE_VERIFICATION.md).
+Its local validator uses a new network-disabled PostgreSQL container and never
+applies migrations or approves a production change.
+
 The pre-milestone stable baseline is commit `00c873c` on `main`. This milestone
 keeps its local-storage key, data shape and application workflow. Preserve Git
 history: use small reviewable commits and additive changes; do not reset or
