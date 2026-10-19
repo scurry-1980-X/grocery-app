@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "investigation_date": "2026-10-18",
+  "final_integrity_review_date": "2026-10-19",
+  "timezone": "America/Chicago",
+  "repository": "scurry-1980-X/grocery-app",
+  "base_commit": "5a728703f12381054623f12655d045f34b679b74",
+  "branch": "codex/isolated-restore-verification",
+  "artifacts": [
+    {
+      "path": "002_deployed_objects.reconstructed.sql",
+      "classification": "reconstructed_backup_time_deployed_object_record_not_original_migration",
+      "source": {
+        "kind": "schema_only_custom_archive_rendering",
+        "backup_basename": "grocery-pre-migration-003-full.dump",
+        "selected_entry_count": 7,
+        "database_version": "17.11",
+        "dump_version": "18.6",
+        "backup_sha256": "e2be830efb0910f3aa3837a27ee0b682a56717fce51a9229fa73a60992b4fc98"
+      },
+      "transformations": [
+        "Added provenance warning comments",
+        "Removed random pg_restore psql restrict/unrestrict guards",
+        "Removed trailing empty lines from the rendered dump footer during pre-commit formatting review",
+        "No schema statement or function body changes"
+      ],
+      "verification": {
+        "function_body_exact_match_to_assembled_user_verification": true,
+        "historical_proposal_body_matches_ignoring_comments_and_whitespace": true,
+        "current_production_verified": false,
+        "original_file_bytes_verified": false,
+        "backup_matches_prior_successful_restore_fingerprint": true
+      },
+      "sha256": "47114babd17535ff42908e5d90ff3e6f506237f9391d312f5446873dae8ec854"
+    },
+    {
+      "path": "003_replay_safe_mutations.recovered.sql",
+      "classification": "recovered_historical_proposal_file_read_snapshot_not_verified_original_file",
+      "source": {
+        "kind": "recorded_command_output",
+        "thread_id": "01a14a9c-e1f3-75c4-8035-332a49c5f036",
+        "thread_title": "Set up grocery-app",
+        "host_id": "durable",
+        "turn_id": "01a14edd-695a-72bb-bf7d-dabd9d1cc60e",
+        "command_item_id": "exec-76f4b378-dc71-46c7-a084-d48925a38eb8",
+        "historical_path": "/workspace/grocery-app/database/proposals/003_replay_safe_mutations.sql",
+        "combined_output_truncated": true,
+        "truncation_location": "inside subsequent Migration 004; complete Migration 003 precedes it"
+      },
+      "transformations": [
+        "Extracted complete Migration 003 segment from decoded tool-output text without edits"
+      ],
+      "verification": {
+        "line_count": 153,
+        "exact_match_to_complete_recorded_segment": true,
+        "contains_redaction_markers": false,
+        "current_file_verified": false,
+        "original_file_bytes_verified": false,
+        "git_revision_known": false
+      },
+      "readiness": "NO-GO; historical snapshot preserves identified client name-validation mismatch",
+      "sha256": "a527c250905838d166b203b608a914f39345a5c93c1e9744868dc08b09aea531"
+    }
+  ],
+  "historical_deployment_verification": {
+    "thread_id": "01a14a9c-e1f3-75c4-8035-332a49c5f036",
+    "user_message_ids": [
+      "01a150dc-228a-775d-bb75-c28b9ba6b8a3",
+      "01a150dc-ff74-7565-820b-a97a23046f16"
+    ],
+    "assembly": "First message supplies function prefix; second supplies the stated continuation marker, final membership guard and function end. Body compared exactly with archive."
+  },
+  "actions": {
+    "sql_executed": false,
+    "production_accessed": false,
+    "migrations_executed": false,
+    "backup_modified": false,
+    "container_lifecycle_changed": false,
+    "committed": false,
+    "pushed": false,
+    "merged": false
+  },
+  "hash_notice": "Artifact SHA-256 values fingerprint files produced by this recovery; they are not previously recorded hashes of original migration files."
+}
