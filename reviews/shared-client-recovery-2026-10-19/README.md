@@ -1,5 +1,52 @@
 # Shared Grocery App client recovery — review candidate only
 
+## Pending-request recovery fix (review only)
+
+The current `client/shared.js` includes a new fix on top of recovery commit
+`353988b`; it is no longer unchanged recovered source. The recovery narrative and
+verification below describe that baseline. `provenance.json` retains the original
+source hash and records the modified file separately from its recovery evidence.
+
+`protectedRequest()` now resolves a pending receipt after a confirmed permanent
+rejection. It uses the existing receipt format (`state: 'confirmed'` with
+`result.status: 'rejected'`) to release the pending gate while retaining the
+request ID for inspection. It still reports the original error, preserves form
+input, and does not automatically retry. A later mutation receives a fresh ID.
+
+Classification requires a structured HTTP 4xx response (excluding 408/429) plus
+a PostgreSQL data/constraint error (SQLSTATE classes 22/23), permission denial
+(`42501`), or an exact known validation/access rejection from the 002/003 RPCs
+(`P0001`). Unknown errors, transport failures, timeouts, gateway responses,
+malformed successes, unavailable/incomplete ledger results, and request-ID
+payload mismatches retain the original pending receipt for replay or review.
+The error message alone, or a generic HTTP status alone, cannot clear it.
+Failure to persist the rejection also leaves the pending receipt intact.
+
+Validation on Node 24.19.0:
+
+```sh
+node --test tests/*.test.cjs reviews/shared-client-recovery-2026-10-19/verify-offline.cjs
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
+
+**133 Node tests passed, 0 failed**, including 31 new recovery tests, the existing
+five recovery checks, parser/name-validation regressions, and the local-app
+Chromium workflow. **13 Python restore-validator tests passed, 0 failed.**
+JavaScript syntax and `git diff --check` also passed.
+
+The new suite executes the actual shared client and protocol with in-memory DOM,
+storage and RPC substitutes, including a mock ledger that commits before losing
+its response. It proves later mutations are unblocked after rejection, exact-ID
+replay survives reload without a second effect, conflicts remain confirmed, and
+storage/session changes fail closed. Three cases exercise the bundled Supabase
+SDK with fake fetch responses; none contacts a backend. This is not a new live
+database/concurrency, shared-client browser, Auth, or iPhone integration result.
+Unknown/new rejection codes intentionally remain pending until classified or
+reviewed. The sanitized historical runner is unchanged and does not gain this
+shared-client fix. All other readiness blockers below remain open.
+
+## Original recovery record
+
 Recovered October 19, 2026 from the historical cloud chat **Set up grocery-app**
 (`01a14a9c-e1f3-75c4-8035-332a49c5f036`, host `durable`), repository history, and
 the previously downloaded Mac runner artifacts. Existing application files and
@@ -16,7 +63,7 @@ has not been recovered. No app/server/runner was started against any backend.
 
 | Path | Classification and evidence |
 | --- | --- |
-| `client/shared.js` | Complete 526-line reconstruction from the initial creation record and later recorded edits, reconciled with explicit source reads. Matches the final 9,141-byte source-read prefix and all 15 final line-numbered shared-client call sites. No original complete-file hash is available. |
+| `client/shared.js` | Originally a complete 526-line reconstruction matching the final 9,141-byte source-read prefix and all 15 final line-numbered call sites. Now modified by the pending-request recovery fix above. No original complete-file hash is available. |
 | `client/mutation-protocol.js` | Exact decoded text of the complete later file-read output; also matches the creation record. This is stronger than reconstruction but still not proof of original disk bytes/line endings. |
 | `client/index.html` | Reconstructed from committed `a01bd5a:index.html` plus recorded shared UI, accessibility, protocol-script, and pending-operation-button edits. Its original local application inline script remains byte-for-byte equal to that Git baseline. |
 | `client/vendor/supabase-2.118.0.js` and license | Copied unchanged from the available Mac artifact. Its embedded version is 2.118.0 and it matches the downloaded ZIP. No current npm-registry integrity verification was performed. |
@@ -136,8 +183,8 @@ evidence, not a test of this reconstructed package against a database.
    isolated setup must supply Auth and invitation behavior; review 004 separately.
 6. **Known client gaps are preserved.** Adds/imports still use direct INSERT with
    stable-ID receipts, invitation redemption uses the existing non-ledger RPC,
-   permanently rejected RPCs can leave pending receipts, and legacy write-path
-   cutover remains unresolved. This recovery does not silently fix historical code.
+   and legacy write-path cutover remains unresolved. The pending-rejection blocker
+   is addressed by the review fix above; unknown outcomes still remain pending.
 7. **Runtime acceptance remains outstanding.** Test the exact candidate's Auth,
    PostgREST, Realtime, invitations, lost-response replay, imports, multiple tabs,
    recovery behavior, and two-device/iPhone Safari/Home Screen flows.

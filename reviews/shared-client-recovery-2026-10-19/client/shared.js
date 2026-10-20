@@ -268,6 +268,24 @@
     }
   }
   function pendingMutation() { return user && protocol.read(user.id)?.state === 'pending'; }
+  function confirmedRejection(result) {
+    // Require a structured server rejection, not a fetch error or gateway status.
+    // Unknown errors (including unavailable/incomplete ledger results and request
+    // ID reuse) keep the original intent so recovery cannot issue a fresh write.
+    if (!result?.error || result.status < 400 || result.status >= 500 ||
+        !Number.isInteger(result.status) || [408, 429].includes(result.status)) return false;
+    const { code, message } = result.error;
+    if (/^(22|23)[0-9A-Z]{3}$/.test(code || '') || code === '42501') return true;
+    return code === 'P0001' && [
+      'Authentication required', 'A request ID is required',
+      'Access to the previously created list is no longer available',
+      'Request ID, list, operation and object payload are required',
+      'Unsupported mutation', 'You are not a member of this grocery list',
+      'Invite payload must be empty', 'Item ID and revision required',
+      'Invalid item values', 'Clear requires frozen targets',
+      'Clear target limit exceeded', 'Invalid clear target',
+    ].includes(message);
+  }
   async function protectedRequest(operation, payload, resume = false) {
     if (!user || !navigator.onLine) throw new Error('Sign in and reconnect before saving.');
     const caller = user.id, current = epoch;
@@ -276,12 +294,20 @@
       if (listId && receipt()?.state === 'pending') throw new Error('Check the earlier unconfirmed save first.');
       const saved = resume ? protocol.read(caller) : protocol.prepare(caller, operation === 'create' ? null : listId, operation, payload);
       if (!saved || saved.state !== 'pending') throw new Error('No pending mutation to resume.');
-      let data;
+      let data, rejected = false;
       try {
         const result = await protocol.execute(client, saved);
         if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
+        if (confirmedRejection(result)) {
+          // Confirm the rejection, not a successful mutation. Reuse the existing
+          // receipt format to release the pending gate without losing its ID.
+          // Persist before check(), which may reset the signed-in account.
+          protocol.complete(saved, { status: 'rejected' });
+          rejected = true;
+        }
         data = check(result);
       } catch (error) {
+        if (rejected) throw error;
         throw new Error(`${error.message} Refresh lists before starting another create or join. Resume the unconfirmed operation with its saved request ID; do not create a new request.`);
       }
       if (saved.operation === 'create' ? !uuid.test(data) : !data || !['ok', 'conflict'].includes(data.status)) {

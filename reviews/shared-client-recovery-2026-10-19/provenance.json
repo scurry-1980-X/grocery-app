@@ -119,9 +119,14 @@
     {
       "path": "README.md",
       "classification": "new_review_documentation",
-      "sha256": "4d8d7cd4ccca2c6d2c4a1d3fbfbc1f64723784431c88bc4daabb7eec1e5e2ded",
-      "bytes": 10849,
-      "sources": []
+      "sha256": "774244e6b70f1e186a2866a903465a9faf75ca45fa9597b3de9d1ca5d161fe7c",
+      "bytes": 13464,
+      "sources": [],
+      "recovery_baseline": {
+        "classification": "new_review_documentation",
+        "sha256": "4d8d7cd4ccca2c6d2c4a1d3fbfbc1f64723784431c88bc4daabb7eec1e5e2ded",
+        "bytes": 10849
+      }
     },
     {
       "path": "client/grocery_app_icon.png",
@@ -163,9 +168,9 @@
     },
     {
       "path": "client/shared.js",
-      "classification": "reconstructed_complete_source_not_original_file",
-      "sha256": "b13dc088f53be705653a8417204291aa7bfe8ca298071593c73f0899701c416a",
-      "bytes": 28348,
+      "classification": "reconstructed_source_with_reviewed_pending_rejection_fix",
+      "sha256": "fec4be0e7f848f250b77c388e87788c5a2640111442fb85027429b5696ff74f2",
+      "bytes": 29889,
       "sources": [
         "exec-59d8dab4-ba39-4891-81d2-824d127f8d80",
         "exec-e651dab3-b8b2-48bc-9829-852ed231aec1",
@@ -179,7 +184,12 @@
         "exec-e9fc7ee1-7f10-4d8d-917a-935e6bb90b78",
         "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8",
         "exec-7f78e484-7ddf-497d-8bed-f2c637341141"
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "reconstructed_complete_source_not_original_file",
+        "sha256": "b13dc088f53be705653a8417204291aa7bfe8ca298071593c73f0899701c416a",
+        "bytes": 28348
+      }
     },
     {
       "path": "client/vendor/README.md",
@@ -307,5 +317,14 @@
     ],
     "line_counts_preserved": true,
     "historical_baseline_hashes": "Describe pre-sanitization source evidence; artifacts hashes describe current files."
+  },
+  "post_recovery_revision": {
+    "base_commit": "353988b5b33d47ef3255479fd2bf6ea201054568",
+    "description": "Review-only pending-request rejection recovery in client/shared.js; runner and protocol unchanged.",
+    "historical_verification_scope": "Existing reconciliations and verification fields describe the recovery baseline, not the modified shared.js.",
+    "regression_test": "../../tests/shared_request_recovery.test.cjs",
+    "node_tests_passed": 133,
+    "python_tests_passed": 13,
+    "live_integration_executed": false
   }
 }
