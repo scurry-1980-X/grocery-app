@@ -1,8 +1,8 @@
--- NEW REVIEW PROPOSAL: name-validation revision v2, 2026-10-19.
+-- NEW REVIEW PROPOSAL: name-validation v2 plus additive add_items, 2026-10-19.
 -- Derived from ../recovered/003_replay_safe_mutations.recovered.sql; not historical SQL.
 -- Requires deployed 002 and its baseline objects. NOT approved for deployment.
 -- Fresh 003 installation only, not rerunnable or an upgrade for an installed 003.
--- See 003_NAME_VALIDATION_REVIEW.md for test coverage and outstanding blockers.
+-- See 003_NAME_VALIDATION_REVIEW.md and 003_ADD_ITEMS_REVIEW.md for review/test scope.
 -- Additive stage: client writes/legacy RPCs remain until separate cutover 004.
 BEGIN;
 -- ascii(text) must return Unicode code points for the UTF-16 length calculation.
@@ -56,13 +56,17 @@ DECLARE
   targets jsonb;
   item_name_text text;
   item_name_units bigint;
+  -- add_items locals
+  additions jsonb;
+  addition jsonb;
+  added_items jsonb;
 BEGIN
   IF caller_id IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
   IF request_id IS NULL OR target_list_id IS NULL OR operation IS NULL
      OR payload IS NULL OR pg_catalog.jsonb_typeof(payload) <> 'object' THEN
     RAISE EXCEPTION 'Request ID, list, operation and object payload are required';
   END IF;
-  IF operation NOT IN ('invite', 'edit', 'delete', 'clear_purchased') THEN
+  IF operation NOT IN ('invite', 'edit', 'delete', 'clear_purchased', 'add_items') THEN
     RAISE EXCEPTION 'Unsupported mutation';
   END IF;
   -- Check access even on replay. This also serializes membership revocation.
@@ -88,7 +92,84 @@ BEGIN
     RETURN existing.result;
   END IF;
 
-  IF operation = 'invite' THEN
+  -- BEGIN additive add_items branch
+  IF operation = 'add_items' THEN
+    -- New intents only: never promote uncertain legacy INSERT receipts.
+    -- Ownership/list/revision/timestamps are server-derived; reject extra keys.
+    additions := payload->'items';
+    IF payload - 'items' <> '{}'::jsonb
+       OR pg_catalog.jsonb_typeof(additions) IS DISTINCT FROM 'array' THEN
+      RAISE EXCEPTION 'Add requires an items array';
+    END IF;
+    IF pg_catalog.jsonb_array_length(additions) NOT BETWEEN 1 AND 200 THEN
+      RAISE EXCEPTION 'Add batch must contain 1 to 200 items';
+    END IF;
+    -- Validate the ENTIRE batch before inserting any items. All failures also
+    -- roll back the ledger reservation in this statement's transaction.
+    FOR addition IN SELECT value FROM pg_catalog.jsonb_array_elements(additions) LOOP
+      IF pg_catalog.jsonb_typeof(addition) IS DISTINCT FROM 'object' THEN
+        RAISE EXCEPTION 'Invalid add item';
+      END IF;
+      IF addition - ARRAY['id', 'item_name', 'quantity', 'purchased'] <> '{}'::jsonb
+         OR pg_catalog.jsonb_typeof(addition->'id') IS DISTINCT FROM 'number'
+         OR pg_catalog.jsonb_typeof(addition->'quantity') IS DISTINCT FROM 'number'
+         OR pg_catalog.jsonb_typeof(addition->'purchased') IS DISTINCT FROM 'boolean' THEN
+        RAISE EXCEPTION 'Invalid add item';
+      END IF;
+      -- Match recovered newId()/receipt(): negative JS-safe integers, avoiding
+      -- the positive identity sequence. Do not round fractions via bigint casts.
+      IF (addition->>'id')::numeric NOT BETWEEN -9007199254740991 AND -1
+         OR (addition->>'id')::numeric <> pg_catalog.trunc((addition->>'id')::numeric)
+         OR (addition->>'quantity')::numeric NOT BETWEEN 1 AND 999
+         OR (addition->>'quantity')::numeric <> pg_catalog.trunc((addition->>'quantity')::numeric) THEN
+        RAISE EXCEPTION 'Invalid add item';
+      END IF;
+      -- Same raw-name/ECMAScript trim/UTF-16 contract as edit below.
+      IF pg_catalog.jsonb_typeof(addition->'item_name') IS DISTINCT FROM 'string' THEN
+        RAISE EXCEPTION 'Invalid item values';
+      END IF;
+      item_name_text := addition->>'item_name';
+      -- This cheap upper bound also bounds the subsequent per-character scan.
+      -- Explicit ECMAScript WhiteSpace + LineTerminator set, not locale \s.
+      IF pg_catalog.length(item_name_text) > 150
+         OR pg_catalog.btrim(item_name_text,
+           U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF') = '' THEN
+        RAISE EXCEPTION 'Invalid item values';
+      END IF;
+      SELECT COALESCE(pg_catalog.sum(
+        CASE WHEN pg_catalog.ascii(ch.c) > 65535 THEN 2 ELSE 1 END), 0)
+        INTO item_name_units
+        FROM pg_catalog.regexp_split_to_table(item_name_text, '') AS ch(c);
+      IF item_name_units NOT BETWEEN 1 AND 150 THEN
+        RAISE EXCEPTION 'Invalid item values';
+      END IF;
+    END LOOP;
+    IF (SELECT pg_catalog.count(DISTINCT (value->>'id')::numeric::bigint)
+        FROM pg_catalog.jsonb_array_elements(additions)) <> pg_catalog.jsonb_array_length(additions) THEN
+      RAISE EXCEPTION 'Duplicate add item ID';
+    END IF;
+    -- Stable insertion order limits overlapping-batch deadlocks. A global ID
+    -- collision is an error, never an upsert or proof of a legacy receipt.
+    WITH inserted AS (
+      INSERT INTO public.grocery_items(id, item_name, quantity, purchased, list_id, owner_id)
+        SELECT (value->>'id')::numeric::bigint, value->>'item_name', (value->>'quantity')::numeric::bigint,
+          (value->>'purchased')::boolean, target_list_id, caller_id
+        FROM pg_catalog.jsonb_array_elements(additions)
+        ORDER BY (value->>'id')::numeric::bigint
+        RETURNING id, item_name, quantity, purchased, list_id, owner_id, created_at, revision
+    )
+    SELECT pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'id', i.id::text, 'item_name', i.item_name, 'quantity', i.quantity,
+      'purchased', i.purchased, 'list_id', i.list_id, 'owner_id', i.owner_id,
+      'created_at', i.created_at, 'revision', i.revision) ORDER BY a.ordinality)
+      INTO added_items FROM inserted AS i
+      JOIN pg_catalog.jsonb_array_elements(additions) WITH ORDINALITY AS a(value, ordinality)
+        ON i.id = (a.value->>'id')::numeric::bigint;
+    -- Immutable creation snapshot, independent of the current item rows.
+    answer := pg_catalog.jsonb_build_object('status', 'ok', 'items', added_items);
+
+  ELSIF operation = 'invite' THEN
+  -- END additive add_items branch
     IF payload <> '{}'::jsonb THEN RAISE EXCEPTION 'Invite payload must be empty'; END IF;
     -- Reuse the existing invitation architecture and membership check.
     token_id := public.create_grocery_list_invite(target_list_id);

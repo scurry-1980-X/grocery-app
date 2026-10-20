@@ -3,6 +3,12 @@
 Prepared and updated October 19, 2026. **Isolated PostgreSQL regression: PASS.
 Production deployment remains NO-GO.**
 
+The proposal now also includes the additive `add_items` component described in
+[003_ADD_ITEMS_REVIEW.md](003_ADD_ITEMS_REVIEW.md). The verification record and
+SHA-256 values below describe the earlier name-validation-only revision, not
+the current extended proposal/test generator. Both add and edit now use the
+canonical name rule; direct/legacy writes still bypass it.
+
 `003_replay_safe_mutations.name_validation_v2.sql` is a new proposal derived from
 `../recovered/003_replay_safe_mutations.recovered.sql`. It is not recovered
 historical SQL. All four files under `database/recovered/` remain unchanged.
@@ -65,11 +71,11 @@ counting, or new character allowlist. Internal newlines and zero-width space
 remain accepted when the recorded client accepts them. A different product rule
 requires a coordinated client/server change.
 
-Outside the encoding guard, local variables, and edit-name validation, the
-historical revision trigger, ledger, membership locking, quantity/purchased
-checks, replay behavior, invitation/delete/clear logic, RLS and grants remain
-unchanged. Source comparison tests guard this narrow scope. This is not a new
-security or concurrency certification of the inherited code.
+In the earlier name-validation-only revision, changes were limited to the
+encoding guard, local variables, and edit-name validation. The current extension
+also adds `add_items`; source comparison tests still guard the inherited
+revision trigger, ledger, membership locking, edit quantity/purchased checks,
+replay behavior, invitation/delete/clear logic, RLS and grants.
 
 ## Client differences still visible
 
@@ -92,7 +98,7 @@ security or concurrency certification of the inherited code.
   tests expose this difference, and the isolated PostgreSQL run confirmed JSON
   decoding rejection. Supabase HTTP errors and client handling remain untested.
   See [PostgreSQL JSON input restrictions](https://www.postgresql.org/docs/17/datatype-json.html).
-- The new check applies only to `mutate_grocery_once(..., 'edit', ...)`.
+- The canonical check now applies to both the `edit` and `add_items` operations.
   Migration 003 remains additive: legacy/direct inserts and updates can bypass
   it, and existing rows are not validated or repaired. All active write paths
   and existing data need the same contract before a shared-client release.
@@ -150,7 +156,7 @@ mounts. All sessions used the container's local Unix socket. Only generated test
 identities and synthetic grocery data were used; no backup or production data
 was loaded. Existing containers and recovered historical files were unchanged.
 
-Exact tested inputs (still match the current files):
+Exact tested inputs for that earlier run (superseded by the additive revision):
 
 - Proposal SHA-256:
   `4a3631cc71dbe5515891179d4c7a77a959791946880813376f97f113a840d331`.
@@ -230,7 +236,7 @@ current production schema, data, grants or deployment readiness.
    backfill/locking impact, then conduct another readiness review.
 
 The prior authorized isolated test applied only the corrected proposal to its
-synthetic test database. This preparation/update performed no SQL execution,
+synthetic test database. That earlier documentation update performed no SQL execution,
 container operation, production access, commit, push, merge or deployment.
 Recovered historical files remain unchanged. **Deployment is still NO-GO** until
 the integration, write-path, rollout and recovery blockers above are resolved

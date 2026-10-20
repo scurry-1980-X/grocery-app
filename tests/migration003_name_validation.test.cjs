@@ -194,7 +194,11 @@ ROLLBACK;
 `;
 }
 
-if (process.argv.includes('--emit-sql')) {
+if (process.argv.includes('--emit-cases')) {
+  process.stdout.write(JSON.stringify(cases.map(([label, name, accepted]) => ({
+    label, name, missing: name === undefined, accepted,
+  }))));
+} else if (process.argv.includes('--emit-sql')) {
   process.stdout.write(buildSql());
 } else {
   test('historical recovered SQL retains its recorded SHA-256', () => {
@@ -202,14 +206,19 @@ if (process.argv.includes('--emit-sql')) {
       'a527c250905838d166b203b608a914f39345a5c93c1e9744868dc08b09aea531');
   });
 
-  test('proposal preserves all historical mutation behavior outside name validation', () => {
+  test('proposal preserves historical behavior outside name validation and additive add_items', () => {
+    const existingOperations = proposal
+      .replace("'clear_purchased', 'add_items'", "'clear_purchased'")
+      .replace(/  -- add_items locals[\s\S]*?  added_items jsonb;\n/, '')
+      .replace(/  -- BEGIN additive add_items branch[\s\S]*?  -- END additive add_items branch\n/,
+        "  IF operation = 'invite' THEN\n");
     const mutationTail = text => text.slice(text.indexOf('      UPDATE public.grocery_items'));
     assert.equal(mutationTail(proposal), mutationTail(historical));
     const mutationPrefix = text => text.slice(text.indexOf('ALTER TABLE public.grocery_items'),
       text.indexOf("      IF pg_catalog.jsonb_typeof(payload->'item_name')"))
       .replace('  item_name_text text;\n  item_name_units bigint;\n', '')
       .replace(/      -- Match the recorded shared loader:[\s\S]*$/, '');
-    assert.equal(mutationPrefix(proposal), mutationPrefix(historical));
+    assert.equal(mutationPrefix(existingOperations), mutationPrefix(historical));
     assert.match(proposal, /current_setting\('server_encoding'\) <> 'UTF8'/);
     assert.match(proposal, /length\(item_name_text\) > 150/);
     assert.match(proposal, /CASE WHEN pg_catalog\.ascii\(ch\.c\) > 65535 THEN 2 ELSE 1 END/);
