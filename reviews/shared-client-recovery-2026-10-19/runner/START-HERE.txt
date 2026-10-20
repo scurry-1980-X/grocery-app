@@ -1,4 +1,23 @@
-Controlled local Grocery App live validation
+REVIEW COPY — NOT AUTHORIZED FOR LIVE USE
+
+October 20, 2026 additive client transition from 4a22d15:
+The add action now uses the shared add_items mutation protocol. It persists
+negative item IDs and a request UUID under grocery-mutation-v1 before sending,
+uses the existing grocery-write Web Lock once, and validates the saved creation
+snapshot before confirming. There is no direct INSERT fallback. Historical
+grocery-validation-add-v1 receipts remain stop/review evidence; they are never
+converted or replayed as RPCs. A failed/uncertain run still stops. Reloading this
+runner does not resume the entire workflow or authorize a new request.
+
+This candidate requires baseline/002 plus the corrected fresh 003 proposal
+with add_items in a separately approved disposable test environment. Migration
+004 is NOT a prerequisite for this additive review; no legacy permissions are
+revoked. The historical 002/003/004 instruction below is superseded for this
+candidate. Active configuration remains empty and account/project placeholders
+are non-operational. Do not follow the historical launch steps without a
+separately reviewed test adapter and explicit test authorization.
+
+Historical controlled local Grocery App live validation instructions
 
 This runner uses the app's existing pinned Supabase SDK. No installation or
 new runtime dependency is required beyond Python 3 already used by the helper.

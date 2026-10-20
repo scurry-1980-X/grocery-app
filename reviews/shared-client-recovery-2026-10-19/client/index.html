@@ -237,6 +237,11 @@ List">
         <label>Invitation code<input id="invite-code" autocomplete="off" required></label>
         <button type="submit">Join list</button>
       </form>
+      <p id="recovery-summary" role="status" aria-live="polite"></p>
+      <div id="legacy-recovery" hidden>
+        <label>Legacy save to check<select id="legacy-receipts"></select></label>
+        <button id="check-legacy" type="button">Check legacy save (read only)</button>
+      </div>
       <button id="check-pending" type="button" hidden>Check / resume unconfirmed operation</button>
       <div id="selected-list" hidden>
         <button id="create-invite" type="button">Create invitation</button>

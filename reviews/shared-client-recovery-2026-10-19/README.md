@@ -1,9 +1,164 @@
 # Shared Grocery App client recovery — review candidate only
 
-## Pending-request recovery fix (review only)
+## Additive `add_items` client transition — October 20, 2026
 
-The current `client/shared.js` includes a new fix on top of recovery commit
-`353988b`; it is no longer unchanged recovered source. The recovery narrative and
+This review implementation starts from `4a22d15` on
+`codex/isolated-restore-verification`. New single-item, multi-item and local-import
+adds use `mutate_grocery_once(..., 'add_items', ...)`. The recovered client and
+runner contain no direct INSERT call or INSERT fallback. The original local-only
+application and both empty shared configuration files remain unchanged.
+Deployment remains **disabled / NO-GO**. SQL, legacy permissions, RLS and
+Migration 004 are not changed.
+
+The protocol is extended in place: `grocery-mutation-v1:<user>` and Web Lock
+`grocery-write:<user>` are unchanged, and both protocol copies are identical.
+An older protocol reader rejects an unknown `add_items` receipt rather than
+overwriting it. Reload old tabs before adopting this candidate; this is not a
+way to upgrade already-running legacy code.
+
+### New adds and imports
+
+One lock encloses preparation, dispatch and local finalization. The client
+validates the complete 1–200 item batch, canonical name/quantity/boolean values
+and unique negative safe integer IDs. It generates IDs and the request UUID
+once, writes and verifies the complete receipt, then dispatches the persisted
+copy. No ID or payload is regenerated for a retry. Server validation and
+ownership remain authoritative; client payloads contain no owner or list fields.
+
+The receipt adds client-only `intent: {kind: 'add'}` or
+`intent: {kind: 'import', source: <original local JSON string>}`. This metadata
+never enters the RPC payload. Import names, quantities and purchased values must
+match that source. The original local list is retained. After validating the
+server's complete ordered creation snapshot, finalization writes and verifies
+`grocery-imported-v1:<original user>:<original list>` **before** confirming the
+RPC receipt. A lost marker can be repaired from the latest confirmed import
+before another operation overwrites that single receipt slot.
+
+Dispatch uses the captured session token after `getUser(token)` verifies its
+caller. The separate RPC client uses that token in memory, with SDK write
+retries disabled. Account/list epoch guards run before and after the send.
+Changing accounts cannot turn the original caller's pending operation into a
+different caller's write; changing lists cannot retarget its payload. Recovery
+always uses the saved list, even if another list is currently selected.
+
+The creation snapshot is validated against saved IDs, caller/list and values,
+including revision and timestamp fields. It is **not** compared to today's rows:
+edited/deleted items still have a valid ledger creation receipt. A refresh
+failure after confirmation disables writes and reports a saved operation;
+it does not reopen the request or leave a successful add looking unsaved.
+
+### Legacy compatibility and independent recovery
+
+`grocery-save-v1:<user>:<list>` is never converted, resubmitted or erased.
+The client discovers pending legacy receipts across that caller's lists, even
+when the original list is unselected or no longer accessible. New mutations are
+blocked while any legacy uncertainty or malformed receipt remains. A distinct
+legacy selector/check action and RPC resume action allow either existing path
+to recover independently. A malformed receipt cannot hide an independently
+recoverable receipt; it still blocks new writes.
+
+Legacy checks issue **SELECT only**, scoped to the original list and frozen IDs,
+without depending on 003 revision columns. Confirmation requires exactly one
+row for every expected ID with exact list, owner, name, quantity and purchased
+values. Response order does not matter. Absent, partial, extra, duplicate,
+changed, malformed, inaccessible or unreadable results retain the receipt and
+require another read or manual data review. Presence is evidence of current
+matching rows, not proof of historical execution; absence is never proof of
+failure. A legacy import also writes its original source marker before local
+confirmation. There is no automated recreation or “repair” INSERT.
+
+### Failure and recovery states
+
+| Event/state | Durable evidence and next action |
+| --- | --- |
+| Validation, ID generation or initial storage fails | No network write; preserve form/local source. Repair the cause before a fresh attempt. |
+| Pending receipt persisted; tab reloads before/during/after send | Same request ID, item IDs, original list and payload remain. Explicit resume only. |
+| Commit succeeds but response is lost/unreadable | Pending; replay the original request, receive the stored snapshot, never create a replacement. |
+| Membership/access/auth/capability denial, collision, request mismatch or unknown error | Pending; recover access or request review. These errors do not establish that a prior creation failed. |
+| Exact supported post-ledger `add_items` validation rejection | Persist `confirmed` with `result.status: 'rejected'`, retain original ID and form; allow a later explicit correction with a fresh ID. |
+| Import marker persistence fails | Keep pending even after server success; retry the original RPC and finalize the original marker. |
+| Receipt confirmation persistence fails | Recover from the persisted evidence. Never automatically issue a fresh add. |
+| Successful confirmation, later edit/delete or refresh failure | Creation remains confirmed. Refresh current rows separately; never resurrect them. |
+| Legacy SELECT does not exactly match, or storage/identity changes | Legacy pending retained; no RPC or INSERT promotion. |
+
+For `add_items`, only structured HTTP 4xx responses (excluding 408/429) with
+SQLSTATE `P0001` and one of the five exact post-ledger validation messages are
+terminal: `Add requires an items array`, `Add batch must contain 1 to 200 items`,
+`Invalid add item`, `Invalid item values`, `Duplicate add item ID`.
+The broader existing `072cb66` rejection rules continue for the other operations.
+Access checks precede ledger lookup in 003, so treating an add recovery's access
+denial as a fresh failure would lose uncertain creation history.
+
+### Automated verification and scope
+
+```sh
+node --test --test-reporter=tap tests/*.test.cjs reviews/shared-client-recovery-2026-10-19/verify-offline.cjs
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 tests/migration003_isolated.py --run-isolated
+```
+
+The new `tests/shared_add_items.test.cjs` executes the actual client, protocol and
+runner functions with storage/transport faults, not an independently rewritten
+client. It covers the 83 canonical names, batch/ID/quantity boundaries, exact
+replay and snapshot validation, rejection classification, import finalization
+failures, account/list changes, legacy reconciliation, mixed/corrupt receipts,
+old-reader compatibility and runner stop behavior. Five cases run the bundled
+SDK against fake fetch responses and inspect its RPC body and bound caller token.
+
+`tests/shared_add_items.browser.test.cjs` serves the actual recovered HTML,
+parser, shared client and protocol to Chromium with loopback-only transport.
+It covers single/multi/import form events, reload while a response is in flight,
+commit followed by an unreadable response and access denial, real Web Locks
+between two tabs, storage events, mixed receipts, storage failure and failed
+post-confirmation refresh. Browser Auth/SDK transport is a fixture; no Supabase
+service or production configuration is used. PostgreSQL tests separately use
+only a new network-disabled container and synthetic data.
+
+Final results (Node 24.19.0, Python 3.12.14, Chromium 154.0.8037.57,
+PostgreSQL 17.11):
+
+| Suite/check | Result |
+| --- | --- |
+| All Node suites, including original parser/browser/recovery tests | **301/301 passed**, 0 failures/skips, 66.118 seconds |
+| New add transition cases within Node total | **168 passed**: 162 protocol/client/runner/fault cases and 6 real-browser cases |
+| Restore-validator safety regressions | **13/13 passed** |
+| Isolated PostgreSQL integration | **21/21 groups passed**, 74.706 seconds; owned container removed |
+| PostgreSQL canonical names and lock contention within those groups | **83 add + 83 edit cases**, **6 concurrency cases** passed |
+| Syntax, protocol-copy equality, original inline script, inert configuration and diff checks | Passed |
+
+The browser fixture delivers an unusable response after committing to model
+lost confirmation without Chromium transparently retrying a closed socket.
+Another case reloads with the response still in flight. Fixture cleanup closes
+its owned HTTP connections so an interrupted request cannot hang teardown.
+Historical results in the following sections describe earlier revisions,
+not the current source.
+Provenance retains those baselines and fingerprints this implementation
+separately. No design deviation: the namespace/lock are retained, the protocol
+is extended rather than replaced, and legacy reconciliation stays SELECT-only.
+
+### Remaining acceptance work
+
+This is an implementation GO, **not a deployment GO**. Live disposable
+Supabase Auth/PostgREST/schema-cache/Realtime and two-account/iPhone acceptance
+are still required with a separately approved test configuration. The sanitized
+runner remains stop-on-failure evidence, not a newly activated live target;
+its complete workflow is not automatically resumed after a reload.
+
+Storage deletion/eviction, browser-profile loss, old running tabs and manual
+receipt edits remain outside the durability guarantee. Web Locks coordinate
+only cooperating same-origin tabs, not devices. Import markers track the latest
+local snapshot per caller/list, not global or perpetual import deduplication.
+Lost receipts/markers must not be treated as permission to recreate uncertain
+groceries. Legacy absent/changed/inaccessible rows need manual review; revoked
+membership can deliberately leave recovery blocked. Unknown server errors also
+stay pending. Ledger retention and backup/restore consistency remain unresolved.
+Invitation redemption still uses its existing non-ledger API; legacy database
+writes still bypass the ledger. No permission cutover is included.
+
+## Historical pending-request recovery fix (`072cb66`, review only)
+
+At `072cb66`, `client/shared.js` included a fix on top of recovery commit
+`353988b`; it was no longer unchanged recovered source. The recovery narrative and
 verification below describe that baseline. `provenance.json` retains the original
 source hash and records the modified file separately from its recovery evidence.
 

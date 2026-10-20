@@ -26,9 +26,10 @@
   const protocol = window.GroceryMutation;
   async function protectedMutation(operation, payload, list = testList) {
     return protocol.exclusive(identity.id, async () => {
-      const saved = protocol.prepare(identity.id, operation === 'create' ? null : list, operation, payload);
+      const saved = protocol.prepare(identity.id, operation === 'create' ? null : list, operation, payload, operation === 'add_items' ? { kind: 'add' } : undefined);
       const result = check(await protocol.execute(client, saved));
       if (operation === 'create' ? !/^[a-f0-9-]{36}$/i.test(result) : result?.status !== 'ok') throw problem('Protected mutation did not confirm success. Stop and reconcile the saved request.');
+      if (operation === 'add_items') protocol.validateAddResult(saved, result);
       protocol.complete(saved, result);
       return result;
     });
@@ -97,15 +98,13 @@
     if (name === 'add') {
       if (identity.email !== expected[0]) throw problem('Only Account 1 adds the one test item.');
       const receiptKey = `grocery-validation-add-v1:${identity.id}:${testList}`;
-      if (localStorage.getItem(receiptKey)) throw problem('A test item receipt already exists. Stop before another add.');
+      if (localStorage.getItem(receiptKey) !== null) throw problem('A test item receipt already exists. Stop before another add.');
       const words = crypto.getRandomValues(new Uint32Array(2));
-      const record = { id: -(1 + (words[0] & 0xfffff) * 4294967296 + words[1]), list_id:testList,
-        owner_id:identity.id, item_name:'Milestone 2 Test Item',quantity:1,purchased:false };
-      localStorage.setItem(receiptKey,JSON.stringify({state:'pending',record}));
-      const row = check(await client.from('grocery_items').insert(record).select(fields).single());
-      localStorage.setItem(receiptKey,JSON.stringify({state:'confirmed',record}));
-      if (!Number.isSafeInteger(row.id) && typeof row.id !== 'string') throw problem('Unsafe item ID returned.');
-      return row;
+      const record = { id: -(1 + (words[0] & 0xfffff) * 4294967296 + words[1]),
+        item_name: 'Milestone 2 Test Item', quantity: 1, purchased: false };
+      // Historical runner receipts remain stop/review evidence, never RPC input.
+      const result = await protectedMutation('add_items', { items: [record] });
+      return result.items[0];
     }
     if (name === 'read') return currentItem(args.id);
     if (name === 'purchase') {

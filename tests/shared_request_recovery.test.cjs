@@ -36,13 +36,14 @@ function environment(rpc, storage = new Map()) {
   };
   const window = { addEventListener() {} };
   const localStorage = {
+    get length() { return storage.size; }, key: i => [...storage.keys()][i] ?? null,
     getItem: key => storage.get(key) ?? null,
     setItem: (key, value) => storage.set(key, value),
   };
   const context = vm.createContext({
     window, crypto: crypto.webcrypto, localStorage, clearInterval() {},
     navigator: { onLine: true, locks: { request: async (_key, task) => task() } },
-    document: { getElementById: id => elements.get(id), addEventListener() {} },
+    document: { getElementById: id => elements.get(id), createElement: element, addEventListener() {} },
     testClient: client, testUser: { id: userId }, testList: listId,
   });
   vm.runInContext(read('mutation-protocol.js'), context);

@@ -7,6 +7,32 @@ retained for existing review/test references. It still requires a **fresh 003
 installation** over the 002 baseline, not an upgrade or rerunnable migration.
 Production deployment is not authorized by this work.
 
+## Additive recovered-client adoption — October 20, 2026
+
+The current uncommitted client review starts from `4a22d15` and implements new
+adds/imports through this proposal's `add_items` contract. The SQL proposal,
+synthetic fixtures and legacy permissions are unchanged. See
+[`reviews/shared-client-recovery-2026-10-19/README.md`](../../reviews/shared-client-recovery-2026-10-19/README.md)
+for the receipt format, state machine, rejection rules, tests and limitations.
+
+Both client/runner protocol copies preserve `grocery-mutation-v1` and the
+existing Web Lock. They persist IDs and the exact intent before dispatch.
+Legacy `grocery-save-v1` receipts receive SELECT-only exact-content
+reconciliation; they are never promoted to RPC requests. Access denial on
+add recovery leaves the receipt pending because membership is checked before
+ledger lookup. Import source markers are finalized before RPC confirmation.
+No automatic INSERT fallback exists. Deployment remains disabled, and
+Migration 004 is outside this additive change.
+
+The unchanged isolated PostgreSQL suite was rerun for the client transition:
+**21/21 groups passed** in **74.706 seconds** on PostgreSQL **17.11**, including
+83 add-name cases, 83 edit-name cases and all six observed concurrency cases.
+The owned network-disabled test container was removed successfully. No
+production SQL or private-backup restore was run.
+
+The sections below record the server component at `4a22d15`; references there
+to deferred client work describe that historical scope.
+
 ## Contract and decisions
 
 New callers may eventually submit:
@@ -62,7 +88,8 @@ New callers may eventually submit:
   ledger stores the snapshot, so a retry returns it even after edit, deletion,
   or reuse of an item ID. It is a creation receipt, not current list state.
 
-No recovered browser code or receipt behavior changes. In particular, uncertain
+The server component at `4a22d15` changed no recovered browser code or receipt
+behavior. In particular, uncertain
 `grocery-save-v1` INSERT receipts **must not** be converted to `add_items`
 requests or retried automatically: the old insert may already have committed.
 Direct INSERT/UPDATE/DELETE permissions and legacy APIs remain in place.

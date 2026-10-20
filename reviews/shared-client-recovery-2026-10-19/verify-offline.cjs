@@ -64,9 +64,10 @@ test('actual recovered protocol routes persisted intents to 002/003 correctly', 
     ['edit', list, { id: '-1', revision, item_name: 'Milk', quantity: 1, purchased: true }],
     ['delete', list, { id: '-1', revision }],
     ['clear_purchased', list, { targets: [{ id: '-1', revision }] }],
+    ['add_items', list, { items: [{ id: -1, item_name: 'Milk', quantity: 1, purchased: false }] }],
   ];
   for (const [operation, listId, payload] of cases) {
-    const saved = api.prepare(user, listId, operation, payload);
+    const saved = api.prepare(user, listId, operation, payload, operation === 'add_items' ? { kind: 'add' } : undefined);
     assert.throws(() => api.prepare(user, listId, operation, payload), /unconfirmed/);
     let call;
     const client = { rpc: async (name, args) => { call = { name, args }; return { data: 'mock' }; } };
@@ -76,7 +77,9 @@ test('actual recovered protocol routes persisted intents to 002/003 correctly', 
       : { name: 'mutate_grocery_once', args: { request_id: saved.requestId,
         target_list_id: listId, operation, payload } };
     assert.deepEqual(JSON.parse(JSON.stringify(call)), expected);
-    const result = { status: 'ok', token: crypto.randomUUID(), expires_at: 'test-expiry' };
+    const result = operation === 'add_items' ? { status: 'ok', items: payload.items.map(row => ({
+      ...row, id: String(row.id), list_id: listId, owner_id: user, revision, created_at: new Date().toISOString(),
+    })) } : { status: 'ok', token: crypto.randomUUID(), expires_at: 'test-expiry' };
     api.complete(saved, result);
     assert.equal(api.read(user).state, 'confirmed');
     if (operation === 'invite') assert.equal(api.read(user).result.token, undefined);
@@ -111,5 +114,8 @@ test('runner serves the recovered protocol and uses protected edit/create/invite
   assert.match(runner, /protectedMutation\('create', \{\}\)/);
   assert.match(runner, /protectedMutation\('invite', \{\}\)/);
   assert.match(runner, /protectedMutation\('edit',/);
+  assert.match(runner, /protectedMutation\('add_items',/);
+  assert.doesNotMatch(shared, /\.insert\(/);
+  assert.doesNotMatch(runner, /\.insert\(/);
   assert.doesNotMatch(runner, /\.update\(|rpc\('create_grocery_list'\)|rpc\('create_grocery_list_invite'/);
 });

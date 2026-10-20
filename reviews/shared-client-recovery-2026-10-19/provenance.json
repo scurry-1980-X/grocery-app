@@ -118,14 +118,20 @@
   "artifacts": [
     {
       "path": "README.md",
-      "classification": "new_review_documentation",
-      "sha256": "774244e6b70f1e186a2866a903465a9faf75ca45fa9597b3de9d1ca5d161fe7c",
-      "bytes": 13464,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "aacc50d9864a9faa99b62c50ce7862730d36b1b47e2b217cddf5f1640e7fa076",
+      "bytes": 23590,
       "sources": [],
       "recovery_baseline": {
         "classification": "new_review_documentation",
         "sha256": "4d8d7cd4ccca2c6d2c4a1d3fbfbc1f64723784431c88bc4daabb7eec1e5e2ded",
         "bytes": 10849
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "new_review_documentation",
+        "sha256": "774244e6b70f1e186a2866a903465a9faf75ca45fa9597b3de9d1ca5d161fe7c",
+        "bytes": 13464
       }
     },
     {
@@ -139,25 +145,47 @@
     },
     {
       "path": "client/index.html",
-      "classification": "reconstructed_git_baseline_plus_recorded_edits",
-      "sha256": "01f9417918e61d7abc58836ed0b2aa1f1c9f927576b0db2a12f06d267a80d580",
-      "bytes": 13258,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "5bdc7e5da2f1365861f35c99d5cdf2084414cf057ddb879c1f640ef1a63a7dc2",
+      "bytes": 13549,
       "sources": [
         "git:a01bd5a:index.html",
         "exec-80fb710d-c92d-4c24-99bc-b2194dfade9c",
         "exec-e520e6ab-ef49-4602-82c6-c81eadef20c3",
         "exec-ff29969d-a419-42ae-b4a9-3c60434eb540",
         "exec-bf9482c6-1fd5-459d-95e5-0aeda9c5b9df"
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "reconstructed_git_baseline_plus_recorded_edits",
+        "sha256": "01f9417918e61d7abc58836ed0b2aa1f1c9f927576b0db2a12f06d267a80d580",
+        "bytes": 13258
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "reconstructed_git_baseline_plus_recorded_edits",
+        "sha256": "01f9417918e61d7abc58836ed0b2aa1f1c9f927576b0db2a12f06d267a80d580",
+        "bytes": 13258
+      }
     },
     {
       "path": "client/mutation-protocol.js",
-      "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
-      "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
-      "bytes": 2859,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "32e481d2069253d7fd407d6e59d4c793a5805783f78ee241a7a9ebb91a2ae825",
+      "bytes": 6785,
       "sources": [
         "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8"
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+        "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+        "bytes": 2859
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+        "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+        "bytes": 2859
+      }
     },
     {
       "path": "client/shared-config.js",
@@ -168,9 +196,9 @@
     },
     {
       "path": "client/shared.js",
-      "classification": "reconstructed_source_with_reviewed_pending_rejection_fix",
-      "sha256": "fec4be0e7f848f250b77c388e87788c5a2640111442fb85027429b5696ff74f2",
-      "bytes": 29889,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "08772181dd455a22e73896a29e0dc25e2fb98cd77510cf0d758b5da0b2285489",
+      "bytes": 36308,
       "sources": [
         "exec-59d8dab4-ba39-4891-81d2-824d127f8d80",
         "exec-e651dab3-b8b2-48bc-9829-852ed231aec1",
@@ -189,6 +217,12 @@
         "classification": "reconstructed_complete_source_not_original_file",
         "sha256": "b13dc088f53be705653a8417204291aa7bfe8ca298071593c73f0899701c416a",
         "bytes": 28348
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "reconstructed_source_with_reviewed_pending_rejection_fix",
+        "sha256": "fec4be0e7f848f250b77c388e87788c5a2640111442fb85027429b5696ff74f2",
+        "bytes": 29889
       }
     },
     {
@@ -218,13 +252,24 @@
     },
     {
       "path": "runner/START-HERE.txt",
-      "classification": "reconstructed_local_baseline_plus_recorded_edits",
-      "sha256": "67e32179226e5543ab9512afb5c1e179f12c47675fc0cb20b18e6a821ac09e65",
-      "bytes": 2291,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "71c4846e1ecef14bd70c2b5e063665719273d03780bae30790333339d4f99753",
+      "bytes": 3489,
       "sources": [
         "local-download:grocery-live-validation/START-HERE.txt",
         "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6"
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "reconstructed_local_baseline_plus_recorded_edits",
+        "sha256": "67e32179226e5543ab9512afb5c1e179f12c47675fc0cb20b18e6a821ac09e65",
+        "bytes": 2291
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "reconstructed_local_baseline_plus_recorded_edits",
+        "sha256": "67e32179226e5543ab9512afb5c1e179f12c47675fc0cb20b18e6a821ac09e65",
+        "bytes": 2291
+      }
     },
     {
       "path": "runner/SUPABASE-LICENSE",
@@ -251,12 +296,23 @@
     },
     {
       "path": "runner/mutation-protocol.js",
-      "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
-      "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
-      "bytes": 2859,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "32e481d2069253d7fd407d6e59d4c793a5805783f78ee241a7a9ebb91a2ae825",
+      "bytes": 6785,
       "sources": [
         "exec-62204db3-d398-4453-b8b4-e2d61a9fd9e8"
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+        "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+        "bytes": 2859
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "exact_complete_decoded_file_read_text_not_original_bytes",
+        "sha256": "e00fabc8bdf30266dfca24f72ba5ede227f01ccc7dc03d54e5108de60a639398",
+        "bytes": 2859
+      }
     },
     {
       "path": "runner/public-config.json",
@@ -267,9 +323,9 @@
     },
     {
       "path": "runner/runner.js",
-      "classification": "sanitized_reconstruction_local_baseline_plus_recorded_edits",
-      "sha256": "c2ae6d7dfcf79e136af0662e5e78b5c2e9fad8115aee2f133e0e8a7736775a2e",
-      "bytes": 15720,
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "33cc1d6ac3c15b58926da05338fcf874841416dfcd790976952aa3b7b2f87d0d",
+      "bytes": 15627,
       "sources": [
         "local-download:grocery-live-validation/runner.js",
         "exec-d1c7aa48-83cf-4982-9e35-b17ef87bd7c6"
@@ -277,7 +333,18 @@
       "pre_sanitization_sha256": "86af93b58bf258d85c7152961b634a754f165884166d1a572c20d28f9a894189",
       "transformations": [
         "Replaced production project and personal account literals where present with documented .invalid placeholders; added inline comments; retained guards and mutation logic."
-      ]
+      ],
+      "recovery_baseline": {
+        "classification": "sanitized_reconstruction_local_baseline_plus_recorded_edits",
+        "sha256": "c2ae6d7dfcf79e136af0662e5e78b5c2e9fad8115aee2f133e0e8a7736775a2e",
+        "bytes": 15720
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "sanitized_reconstruction_local_baseline_plus_recorded_edits",
+        "sha256": "c2ae6d7dfcf79e136af0662e5e78b5c2e9fad8115aee2f133e0e8a7736775a2e",
+        "bytes": 15720
+      }
     },
     {
       "path": "runner/supabase.js",
@@ -299,10 +366,21 @@
     },
     {
       "path": "verify-offline.cjs",
-      "classification": "new_offline_recovery_checks_not_historical_test_suite",
-      "sha256": "b59972b14065fe85187c6071d75fe40e7674564cf9676f8938f64583d838b2f9",
-      "bytes": 5908,
-      "sources": []
+      "classification": "review_implementation_additive_add_items_transition",
+      "sha256": "78180001ef18ab35baabfbe9b6247605fb71672316b58c8ceab8cc4aa26857f3",
+      "bytes": 6420,
+      "sources": [],
+      "recovery_baseline": {
+        "classification": "new_offline_recovery_checks_not_historical_test_suite",
+        "sha256": "b59972b14065fe85187c6071d75fe40e7674564cf9676f8938f64583d838b2f9",
+        "bytes": 5908
+      },
+      "pre_add_items_revision": {
+        "commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+        "classification": "new_offline_recovery_checks_not_historical_test_suite",
+        "sha256": "b59972b14065fe85187c6071d75fe40e7674564cf9676f8938f64583d838b2f9",
+        "bytes": 5908
+      }
     }
   ],
   "sanitization": {
@@ -326,5 +404,69 @@
     "node_tests_passed": 133,
     "python_tests_passed": 13,
     "live_integration_executed": false
+  },
+  "add_items_client_revision": {
+    "date": "2026-10-20",
+    "base_commit": "4a22d15caf1c3e2c616b2cec974034dee0153774",
+    "branch": "codex/isolated-restore-verification",
+    "description": "Uncommitted additive add_items client/protocol/runner transition; SELECT-only legacy reconciliation, stable request/item IDs, original-source import finalization and operation-aware rejection recovery.",
+    "historical_verification_scope": "Source records, reconciliations, sanitization and post_recovery_revision describe earlier baselines; current artifacts are intentional review modifications, not newly recovered originals.",
+    "receipt_namespace": "grocery-mutation-v1:<user>",
+    "web_lock": "grocery-write:<user>",
+    "legacy_receipt_policy": "grocery-save-v1 remains SELECT-only; never promoted or replayed as add_items.",
+    "external_review_files": [
+      {
+        "repository_path": "tests/shared_add_items.test.cjs",
+        "sha256": "cac534f7259e5cf78a4ae222bae4488bcb1787d75b235577f0af62b6f7b9618c",
+        "bytes": 31063
+      },
+      {
+        "repository_path": "tests/shared_add_items.browser.test.cjs",
+        "sha256": "6761acf1952bfde6524246dac1b99c859f52e1f001e50d0eea225b264403e025",
+        "bytes": 14181
+      },
+      {
+        "repository_path": "tests/shared_request_recovery.test.cjs",
+        "sha256": "31fa4570fc848488cf230af2251c11a2ffc5fb302babbf960a7da836ce3c1b0a",
+        "bytes": 11379
+      },
+      {
+        "repository_path": "database/proposals/003_ADD_ITEMS_REVIEW.md",
+        "sha256": "16d3795ed3e1b4ad3d14119cdb227308def364ad3637aec061b57b6d36d989f8",
+        "bytes": 11203
+      }
+    ],
+    "verification": {
+      "node_tests_passed": 301,
+      "node_tests_failed": 0,
+      "node_tests_skipped": 0,
+      "new_add_transition_tests": 168,
+      "real_shared_browser_tests": 6,
+      "python_safety_tests_passed": 13,
+      "isolated_postgresql_groups_passed": 21,
+      "postgresql_canonical_names": {
+        "add": 83,
+        "edit": 83
+      },
+      "postgresql_concurrency_cases": 6,
+      "postgresql_elapsed_seconds": 74.706,
+      "postgresql_container_removed": true,
+      "actual_sdk_fake_fetch_add_cases": 5,
+      "protocol_copies_identical": true,
+      "original_local_inline_script_unchanged": true,
+      "runtime": {
+        "node": "24.19.0",
+        "python": "3.12.14",
+        "chromium": "154.0.8037.57",
+        "postgresql": "17.11"
+      }
+    },
+    "active_configuration": "Both URL/key configuration files remain empty; browser tests inject loopback-only fixtures without changing those files.",
+    "sql_or_permissions_changed": false,
+    "supabase_integration_executed": false,
+    "production_access_or_deployment": false,
+    "private_backup_restore_executed": false,
+    "design_deviations": [],
+    "status": "Review implementation only; uncommitted; deployment disabled. Live disposable Supabase and device acceptance remain outstanding."
   }
 }

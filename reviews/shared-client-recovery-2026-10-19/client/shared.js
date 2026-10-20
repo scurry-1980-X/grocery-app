@@ -9,7 +9,6 @@
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const message = text => { $('cloud-status').textContent = text; };
   const protocol = window.GroceryMutation;
-  const receiptKey = () => `grocery-save-v1:${user.id}:${listId}`;
   const isEmailUser = session => session?.user && !session.user.is_anonymous && session.user.email;
 
   function check(result) {
@@ -33,21 +32,64 @@
       }
     };
   }
-  function receipt() {
-    const value = localStorage.getItem(receiptKey());
-    if (!value) return null;
+  function receiptAt(caller, target) {
+    const value = localStorage.getItem(`grocery-save-v1:${caller}:${target}`);
+    if (value === null) return null;
     let saved;
     try { saved = JSON.parse(value); } catch { /* handled as unsafe below */ }
-    if (!saved || !['pending', 'confirmed'].includes(saved.state) || !['add', 'import'].includes(saved.kind) ||
+    if (!uuid.test(target) || !saved || !['pending', 'confirmed'].includes(saved.state) || !['add', 'import'].includes(saved.kind) ||
         (saved.kind === 'import' && typeof saved.source !== 'string') || !Array.isArray(saved.records) ||
         !saved.records.length || saved.records.length > 200 || saved.records.some(row =>
-          !row || !Number.isSafeInteger(row.id) || row.id >= 0 || row.list_id !== listId || row.owner_id !== user.id ||
+          !row || !Number.isSafeInteger(row.id) || row.id >= 0 || row.list_id !== target || row.owner_id !== caller ||
           typeof row.item_name !== 'string' || !row.item_name.trim() || row.item_name.length > 150 ||
           !Number.isInteger(row.quantity) || row.quantity < 1 || row.quantity > 999 || typeof row.purchased !== 'boolean') ||
         new Set(saved.records.map(row => row.id)).size !== saved.records.length) {
       throw new Error('Saved receipt needs review. Nothing was sent or removed. Keep the local copy and request a data review.');
     }
+    if (saved.kind === 'import') {
+      let entries;
+      try { entries = JSON.parse(saved.source); } catch { /* fail closed */ }
+      if (!Array.isArray(entries) || entries.length !== saved.records.length || entries.some((entry, i) =>
+          !entry || entry.name !== saved.records[i].item_name || entry.quantity !== saved.records[i].quantity ||
+          entry.done !== saved.records[i].purchased)) throw new Error('Saved import source needs review. Nothing was sent.');
+    }
     return saved;
+  }
+  function receipt() { return receiptAt(user.id, listId); }
+  function legacyReceipts(caller, errors) {
+    const prefix = `grocery-save-v1:${caller}:`;
+    const found = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) {
+        const target = key.slice(prefix.length);
+        try {
+          const saved = receiptAt(caller, target);
+          if (saved?.state === 'pending') found.push({ listId: target, saved });
+        } catch (error) {
+          if (!errors) throw error;
+          errors.push(error.message);
+        }
+      }
+    }
+    return found.sort((a, b) => a.listId.localeCompare(b.listId));
+  }
+  function noLegacyPending(caller) {
+    if (legacyReceipts(caller).length) throw new Error('Check the earlier unconfirmed legacy save first. No new request was prepared.');
+  }
+  function storeVerified(key, value) {
+    localStorage.setItem(key, value);
+    if (localStorage.getItem(key) !== value) throw new Error('Browser storage could not be verified. Keep the recovery receipt.');
+  }
+  function importKey(caller, target) { return `grocery-imported-v1:${caller}:${target}`; }
+  function repairImportMarker(caller) {
+    const saved = protocol.read(caller);
+    // Confirmation is only written after the marker. Repair a subsequently lost
+    // marker before this single-slot receipt can be overwritten by another action.
+    if (saved?.state === 'confirmed' && saved.operation === 'add_items' && saved.result.status === 'ok' &&
+        saved.intent.kind === 'import' && localStorage.getItem(importKey(caller, saved.listId)) === null) {
+      storeVerified(importKey(caller, saved.listId), saved.intent.source);
+    }
   }
   function controls() {
     for (const el of $('shared-mode').querySelectorAll('button, input, select')) el.disabled = busy;
@@ -56,12 +98,28 @@
     $('selected-list').hidden = !listId;
     if (!busy) {
       $('sign-up').disabled = Date.now() < signupBlockedUntil;
-      let pending = false;
-      try { pending = !!(user && (protocol.read(user.id)?.state === 'pending' || (listId && receipt()?.state === 'pending'))); }
-      catch { pending = true; }
+      const errors = [];
+      let rpc = null, legacy = [];
+      try { rpc = user && protocol.read(user.id); }
+      catch (error) { errors.push(error.message); }
+      try { legacy = user ? legacyReceipts(user.id, errors) : []; }
+      catch (error) { errors.push(error.message); }
+      const pending = !!(rpc?.state === 'pending' || legacy.length || errors.length);
+      $('check-pending').hidden = rpc?.state !== 'pending';
+      $('legacy-recovery').hidden = !legacy.length;
+      const previous = $('legacy-receipts').value;
+      $('legacy-receipts').replaceChildren(...legacy.map(record => {
+        const option = document.createElement('option');
+        option.value = record.listId; option.textContent = `Legacy ${record.saved.kind}: ${record.listId}`;
+        return option;
+      }));
+      if (legacy.some(record => record.listId === previous)) $('legacy-receipts').value = previous;
+      $('recovery-summary').textContent = rpc?.state === 'pending'
+        ? `Unconfirmed ${rpc.operation} for ${rpc.listId || 'a new list'}. Resume its original request; do not start a replacement.`
+        : legacy.length ? 'Legacy saves require a read-only check. Missing or changed rows need review.' : '';
+      if (errors.length) $('recovery-summary').textContent += ` ${errors.join(' ')}`;
       for (const el of $('cloud-form').querySelectorAll('input, button')) el.disabled = !loaded || pending;
       $('cloud-clear').disabled = !loaded || pending || !rows.some(row => row.purchased);
-      $('check-pending').hidden = !pending;
       $('create-list').disabled = pending;
       $('create-invite').disabled = !loaded || pending;
       $('join-form').querySelector('button').disabled = pending;
@@ -224,7 +282,7 @@
     await loadRows();
     startSync();
     message('Shared list loaded. Changes refresh automatically while connected.');
-    if (protocol.read(user.id)?.state === 'pending' || receipt()?.state === 'pending') { failureVisible = true; message('An earlier save is unconfirmed. Check it before adding or importing again.'); }
+    if (pendingMutation() || legacyReceipts(user.id).length) { failureVisible = true; message('An earlier save is unconfirmed. Check it before adding or importing again.'); }
   }
   async function memberships(preferred) {
     const current = epoch;
@@ -268,13 +326,22 @@
     }
   }
   function pendingMutation() { return user && protocol.read(user.id)?.state === 'pending'; }
-  function confirmedRejection(result) {
+  function confirmedRejection(result, saved) {
     // Require a structured server rejection, not a fetch error or gateway status.
     // Unknown errors (including unavailable/incomplete ledger results and request
     // ID reuse) keep the original intent so recovery cannot issue a fresh write.
     if (!result?.error || result.status < 400 || result.status >= 500 ||
         !Number.isInteger(result.status) || [408, 429].includes(result.status)) return false;
     const { code, message } = result.error;
+    if (saved?.operation === 'add_items') {
+      // Only these validations run AFTER ledger lookup in the supported 003.
+      // Access/capability errors may precede a previously committed result.
+      // Collisions, mismatched IDs, unknown SQLSTATEs and transport errors need review.
+      return code === 'P0001' && ['Add requires an items array',
+        'Add batch must contain 1 to 200 items', 'Invalid add item',
+        'Invalid item values', 'Duplicate add item ID'].includes(message);
+    }
+
     if (/^(22|23)[0-9A-Z]{3}$/.test(code || '') || code === '42501') return true;
     return code === 'P0001' && [
       'Authentication required', 'A request ID is required',
@@ -286,49 +353,73 @@
       'Clear target limit exceeded', 'Invalid clear target',
     ].includes(message);
   }
-  async function protectedRequest(operation, payload, resume = false) {
-    if (!user || !navigator.onLine) throw new Error('Sign in and reconnect before saving.');
-    const caller = user.id, current = epoch;
-    return protocol.exclusive(caller, async () => {
+  async function addRpcClient(saved) {
+    // Bind dispatch to one verified token; a later SDK session switch must not
+    // execute this caller's intent as another member. Tokens stay in memory only.
+    const session = check(await client.auth.getSession()).session;
+    if (!session?.access_token || session.user.id !== saved.userId) throw new Error('Sign in as the original caller before resuming.');
+    const verified = check(await client.auth.getUser(session.access_token)).user;
+    if (verified?.id !== saved.userId) throw new Error('The authenticated caller changed. Keep the pending receipt.');
+    const config = window.GROCERY_SHARED_CONFIG;
+    return window.supabase.createClient(config.url, config.publishableKey, {
+      accessToken: async () => session.access_token,
+      db: { retry: false, timeout: 15000 },
+    });
+  }
+  async function executeSaved(saved, caller, current) {
+    const guard = () => {
       if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
-      if (listId && receipt()?.state === 'pending') throw new Error('Check the earlier unconfirmed save first.');
-      const saved = resume ? protocol.read(caller) : protocol.prepare(caller, operation === 'create' ? null : listId, operation, payload);
-      if (!saved || saved.state !== 'pending') throw new Error('No pending mutation to resume.');
-      let data, rejected = false;
-      try {
-        const result = await protocol.execute(client, saved);
-        if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
-        if (confirmedRejection(result)) {
-          // Confirm the rejection, not a successful mutation. Reuse the existing
-          // receipt format to release the pending gate without losing its ID.
-          // Persist before check(), which may reset the signed-in account.
-          protocol.complete(saved, { status: 'rejected' });
-          rejected = true;
-        }
-        data = check(result);
-      } catch (error) {
-        if (rejected) throw error;
-        throw new Error(`${error.message} Refresh lists before starting another create or join. Resume the unconfirmed operation with its saved request ID; do not create a new request.`);
+    };
+    let data, rejected = false;
+    try {
+      const transport = saved.operation === 'add_items' ? await addRpcClient(saved) : client;
+      guard();
+      const result = await protocol.execute(transport, saved);
+      guard();
+      if (confirmedRejection(result, saved)) {
+        protocol.complete(saved, { status: 'rejected' });
+        rejected = true;
       }
+      data = check(result);
+    } catch (error) {
+      if (rejected) throw error;
+      throw new Error(`${error.message} Refresh lists before starting another create or join. Resume the unconfirmed operation with its saved request ID; do not create a new request.`);
+    }
+    if (saved.operation === 'add_items') {
+      protocol.validateAddResult(saved, data);
+      if (saved.intent.kind === 'import') storeVerified(importKey(caller, saved.listId), saved.intent.source);
+    } else {
       if (saved.operation === 'create' ? !uuid.test(data) : !data || !['ok', 'conflict'].includes(data.status)) {
         throw new Error('Unexpected mutation response. Keep the pending receipt and request a review.');
       }
       if (saved.operation === 'invite' && (!uuid.test(data.token) || !data.expires_at)) throw new Error('Unexpected invitation response. Keep the pending receipt.');
       if (saved.operation === 'clear_purchased' && !Array.isArray(data.deleted_ids)) throw new Error('Unexpected clear response. Keep the pending receipt.');
-      protocol.complete(saved, data);
-      if (saved.operation === 'create') await memberships(data);
-      else {
-        if (listId !== saved.listId) await memberships(saved.listId);
-        if (saved.operation === 'invite') {
-          $('invitation-result').textContent = data.token;
-          message('Invitation result restored. Share privately; the original invitation may already be used or expired.');
-        }
-        if (data.status === 'conflict') {
-          await loadRows();
-          throw new Error('This item changed or was removed on another device. Refresh; cancel and reopen the edit before retrying. Your input is kept.');
-        }
+    }
+    protocol.complete(saved, data);
+    if (saved.operation === 'create') await memberships(data);
+    else if (saved.operation !== 'add_items') {
+      if (listId !== saved.listId) await memberships(saved.listId);
+      if (saved.operation === 'invite') {
+        $('invitation-result').textContent = data.token;
+        message('Invitation result restored. Share privately; the original invitation may already be used or expired.');
       }
-      return { saved, data };
+      if (data.status === 'conflict') {
+        await loadRows();
+        throw new Error('This item changed or was removed on another device. Refresh; cancel and reopen the edit before retrying. Your input is kept.');
+      }
+    }
+    return { saved, data };
+  }
+  async function protectedRequest(operation, payload, resume = false) {
+    if (!user || !navigator.onLine) throw new Error('Sign in and reconnect before saving.');
+    const caller = user.id, current = epoch;
+    return protocol.exclusive(caller, async () => {
+      if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
+      // Existing RPCs can recover even when an unrelated legacy receipt exists.
+      if (!resume) { noLegacyPending(caller); repairImportMarker(caller); }
+      const saved = resume ? protocol.read(caller) : protocol.prepare(caller, operation === 'create' ? null : listId, operation, payload);
+      if (!saved || saved.state !== 'pending') throw new Error('No pending mutation to resume.');
+      return executeSaved(saved, caller, current);
     });
   }
   async function conditionalWrite(row, patch) {
@@ -374,50 +465,59 @@
     const words = crypto.getRandomValues(new Uint32Array(2));
     return -(1 + (words[0] & 0xfffff) * 4294967296 + words[1]);
   }
-  async function finishReceipt(saved) {
-    const guard = context();
-    const key = receiptKey();
-    const result = await table().select(fields).eq('list_id', listId).in('id', saved.records.map(row => row.id));
-    guard();
-    const data = check(result);
-    if (data.length !== saved.records.length) {
-      throw new Error('Save is still unconfirmed. Do not repeat the import or add: it may already have completed. Check again or request a data review.');
-    }
-    // A matching ID with different content is not silently accepted.
-    if (saved.records.some(record => !data.some(row => String(row.id) === String(record.id) &&
-        row.item_name === record.item_name && row.quantity === record.quantity && row.purchased === record.purchased))) {
-      throw new Error('Saved records differ from this receipt. Another device may have edited them. Request a data review before repeating the save.');
-    }
-    if (saved.kind === 'import') localStorage.setItem(`grocery-imported-v1:${user.id}:${listId}`, saved.source);
-    saved.state = 'confirmed';
-    localStorage.setItem(key, JSON.stringify(saved));
-  }
-  async function insertBatch(entries, kind, source) {
+  async function reconcileLegacy(target) {
+    if (!user || !navigator.onLine) throw new Error('Sign in and reconnect before checking the legacy save.');
     const caller = user.id, current = epoch;
     return protocol.exclusive(caller, async () => {
       if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
-      if (pendingMutation()) throw new Error('Resume the earlier unconfirmed operation first.');
-      return insertBatchLocked(entries, kind, source);
+      const saved = receiptAt(caller, target);
+      if (!saved || saved.state !== 'pending') return;
+      const key = `grocery-save-v1:${caller}:${target}`;
+      // SELECT-only, even without 003. Revision/history cannot be reconstructed.
+      const result = await table().select('id,list_id,owner_id,item_name,quantity,purchased')
+        .eq('list_id', target).in('id', saved.records.map(row => row.id));
+      if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
+      const data = check(result);
+      const matches = Array.isArray(data) && data.length === saved.records.length &&
+        new Set(data.map(row => row && String(row.id))).size === saved.records.length &&
+        saved.records.every(record => data.some(row => row &&
+          (typeof row.id === 'string' || Number.isSafeInteger(row.id)) && String(row.id) === String(record.id) &&
+          row.list_id === target && row.owner_id === caller && row.item_name === record.item_name &&
+          row.quantity === record.quantity && row.purchased === record.purchased));
+      if (!matches) throw new Error('Legacy save is still unconfirmed: rows are missing, changed, inaccessible or malformed. Nothing was inserted. Keep this receipt and request a data review.');
+      if (JSON.stringify(receiptAt(caller, target)) !== JSON.stringify(saved)) throw new Error('Legacy receipt changed. Stop and request a review.');
+      if (saved.kind === 'import') storeVerified(importKey(caller, target), saved.source);
+      storeVerified(key, JSON.stringify({ ...saved, state: 'confirmed' }));
+      message(`Legacy save for ${target} matched existing rows. No groceries were inserted; local groceries are unchanged.`);
     });
   }
-  async function insertBatchLocked(entries, kind, source) {
-    if (receipt()?.state === 'pending') throw new Error('Check the earlier unconfirmed save first.');
-    if (entries.length > 200) throw new Error('Import supports up to 200 local groceries at once. Your local data is unchanged; request a larger-list import plan.');
-    const guard = context();
-    const key = receiptKey();
-    const records = entries.map(entry => ({ id: newId(), item_name: entry.name, quantity: entry.quantity,
-      purchased: entry.done || false, list_id: listId, owner_id: user.id }));
-    const saved = { state: 'pending', kind, source, records };
-    // Persist before any request. If storage fails, nothing is sent.
-    localStorage.setItem(key, JSON.stringify(saved));
-    const result = await table().insert(records);
-    guard();
-    if (result.error) {
-      // A PostgreSQL rejection is definite. Transport failures remain pending.
-      if (/^[0-9A-Z]{5}$/.test(result.error.code || '') && result.error.code !== '23505') localStorage.removeItem(key);
-      throw new Error(`${result.error.message}. Input and local groceries were kept. Check unconfirmed saves before retrying.`);
-    }
-    await finishReceipt(saved);
+  async function addBatch(entries, kind, source) {
+    if (!user || !navigator.onLine || !listId || !loaded) throw new Error('Sign in and refresh the list before saving.');
+    const caller = user.id, target = listId, current = epoch;
+    return protocol.exclusive(caller, async () => {
+      if (current !== epoch || user?.id !== caller) throw new Error('The account or list changed.');
+      if (pendingMutation()) throw new Error('Resume the earlier unconfirmed operation first.');
+      noLegacyPending(caller);
+      repairImportMarker(caller);
+      const previous = receiptAt(caller, target);
+      if (kind === 'import' && (localStorage.getItem(importKey(caller, target)) === source ||
+          (previous?.state === 'confirmed' && previous.kind === 'import' && previous.source === source))) {
+        throw new Error('This local snapshot was already imported. Local groceries are still available.');
+      }
+      if (!Array.isArray(entries) || entries.length < 1 || entries.length > 200) throw new Error('Add/import requires 1–200 groceries. Nothing was sent.');
+      const ids = new Set();
+      const items = entries.map(entry => {
+        let id;
+        // A duplicate is regenerated only BEFORE persistence, never after send.
+        for (let attempt = 0; attempt < 10; attempt++) { id = newId(); if (!ids.has(id)) break; }
+        if (ids.has(id)) throw new Error('Could not generate unique item IDs. Nothing was sent.');
+        ids.add(id);
+        return { id, item_name: entry.name, quantity: entry.quantity, purchased: kind === 'import' ? entry.done : false };
+      });
+      const intent = kind === 'import' ? { kind, source } : { kind };
+      const saved = protocol.prepare(caller, target, 'add_items', { items }, intent);
+      return executeSaved(saved, caller, current);
+    });
   }
   $('shared-mode-button').addEventListener('click', () => void run(async () => {
     active = true; $('shared-mode').hidden = false; $('local-mode').hidden = true;
@@ -465,6 +565,7 @@
     event.preventDefault();
     void run(async () => {
       if (pendingMutation()) throw new Error('Resume the earlier unconfirmed operation first.');
+      noLegacyPending(user.id); repairImportMarker(user.id);
       const token = $('invite-code').value.trim();
       if (!uuid.test(token)) throw new Error('Enter a valid invitation code.');
       let id;
@@ -485,7 +586,7 @@
       let entries;
       try { entries = editing ? null : parseGroceryList(name, quantity); }
       catch (error) { $('cloud-name').setCustomValidity(error.message); $('cloud-name').reportValidity(); return; }
-      await mutate(() => editing ? conditionalWrite(editing, { item_name: name, quantity }) : insertBatch(entries, 'add'), 'Shared changes saved.');
+      await mutate(() => editing ? conditionalWrite(editing, { item_name: name, quantity }) : addBatch(entries, 'add'), 'Shared changes saved.');
       cancelEdit(); $('cloud-name').focus();
     });
   });
@@ -515,34 +616,36 @@
     const previous = receipt();
     // Import confirmation is separately retained: later ordinary adds must not
     // erase proof that this local snapshot was already imported.
-    const importKey = `grocery-imported-v1:${user.id}:${listId}`;
-    if (localStorage.getItem(importKey) === source || (previous?.kind === 'import' && previous.source === source && previous.state === 'confirmed')) {
+    const markerKey = importKey(user.id, listId);
+    if (localStorage.getItem(markerKey) === source || (previous?.kind === 'import' && previous.source === source && previous.state === 'confirmed')) {
       throw new Error('This local snapshot was already imported. Local groceries are still available.');
     }
     if (!window.confirm(`Copy ${entries.length} local groceries into this shared list? The local copy will be kept.`)) return;
     await mutate(async () => {
-      await insertBatch(entries, 'import', source);
-      localStorage.setItem(importKey, source);
+      await addBatch(entries, 'import', source);
     }, 'Local groceries imported successfully. The original local copy is unchanged.');
   }));
   $('check-pending').addEventListener('click', () => void run(async () => {
-    if (pendingMutation()) {
-      const { saved } = await protectedRequest(null, null, true);
-      if (saved.operation !== 'create' && saved.operation !== 'invite') {
-        await loadRows(); cancelEdit();
-        const outcome = saved.operation === 'clear_purchased' ? ` Deleted ${protocol.read(user.id).result.deleted_ids.length} of ${saved.payload.targets.length} captured targets; changed or missing targets were skipped.` : '';
-        message(`Earlier operation confirmed.${outcome} Current shared records refreshed; local groceries are unchanged.`);
+    const { saved } = await protectedRequest(null, null, true);
+    if (saved.operation === 'add_items') {
+      // Confirmation is durable before any refresh; never treat a failed read as
+      // an unsaved add. Do not clear another list's current form.
+      message(`Earlier ${saved.intent.kind} for ${saved.listId} confirmed. Local groceries are unchanged.`);
+      if (listId === saved.listId) {
+        cancelEdit();
+        try { await loadRows(); }
+        catch (error) { loaded = false; message(`Earlier save confirmed. Refresh failed: ${error.message}`); }
       }
-      return;
+    } else if (saved.operation !== 'create' && saved.operation !== 'invite') {
+      await loadRows(); cancelEdit();
+      const outcome = saved.operation === 'clear_purchased' ? ` Deleted ${protocol.read(user.id).result.deleted_ids.length} of ${saved.payload.targets.length} captured targets; changed or missing targets were skipped.` : '';
+      message(`Earlier operation confirmed.${outcome} Current shared records refreshed; local groceries are unchanged.`);
     }
-    const saved = receipt();
-    if (!saved || saved.state !== 'pending') return;
-    await finishReceipt(saved);
-    if (saved.kind === 'import') localStorage.setItem(`grocery-imported-v1:${user.id}:${listId}`, saved.source);
-    await loadRows(); cancelEdit(); message('Earlier save confirmed. Local groceries are unchanged.');
   }));
+  $('check-legacy').addEventListener('click', () => void run(() => reconcileLegacy($('legacy-receipts').value)));
   window.addEventListener('storage', event => {
-    if (user && event.key === `grocery-mutation-v1:${user.id}`) controls();
+    if (user && (event.key === null || event.key === `grocery-mutation-v1:${user.id}` ||
+        event.key?.startsWith(`grocery-save-v1:${user.id}:`) || event.key?.startsWith(`grocery-imported-v1:${user.id}:`))) controls();
   });
   window.addEventListener('offline', () => {
     if (active) { loaded = false; controls(); message('Offline. Shared saves are disabled; your local list is available.'); }
