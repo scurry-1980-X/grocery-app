@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "base_commit": "e92e307f0db65dbd6d74b3eb2f74e96f2ea0f5a5",
+  "branch": "codex/isolated-restore-verification",
+  "classification": "historically_grounded_disposable_application_fixtures_not_original_migrations",
+  "archive": {
+    "name": "grocery-pre-migration-003-full.dump",
+    "sha256": "e2be830efb0910f3aa3837a27ee0b682a56717fce51a9229fa73a60992b4fc98",
+    "server_version": "17.11",
+    "pg_dump_version": "18.6",
+    "identity_source": "database/recovered/provenance.json and user attestation"
+  },
+  "attachment": {
+    "path": "tests/supabase_integration/fixtures/sources/grocery-three-functions.sql",
+    "sha256": "2fb39626f2928fd3a77084e8c00da01247d06e3126d160c202a29a2fa01c697d",
+    "user_supplied_name": "grocery-three-functions.sql",
+    "function_entry_ids_user_attested": [
+      484,
+      485,
+      486
+    ],
+    "pg_restore_version_user_attested": "17.11",
+    "archive_hash_verified_on_imac_user_attested": true,
+    "no_database_or_sql_execution_user_attested": true,
+    "preservation": "byte-for-byte; 28 CRLF pairs retained in source; -text attribute"
+  },
+  "installation_order": [
+    "001_grocery_prerequisites.sql",
+    "002_create_once.sql"
+  ],
+  "objects": [
+    {
+      "names": [
+        "public.create_grocery_list()",
+        "public.create_grocery_list_invite(uuid)",
+        "public.redeem_grocery_list_invite(uuid)"
+      ],
+      "classification": "exact_recovered_source",
+      "definition_source": "tests/supabase_integration/fixtures/sources/grocery-three-functions.sql",
+      "acl_source": "scripts/restore_validation/catalog_checks.sql",
+      "transformation": "CRLF normalized to LF; complete CREATE FUNCTION and ALTER OWNER statements retained"
+    },
+    {
+      "names": [
+        "public.grocery_items",
+        "public.grocery_list_members",
+        "public.grocery_list_invites"
+      ],
+      "classification": "catalog_derived_with_historical_restore_evidence",
+      "definition_source": "scripts/restore_validation/catalog_checks.sql",
+      "coverage": [
+        "columns",
+        "types",
+        "nullability",
+        "defaults",
+        "primary_keys",
+        "foreign_keys",
+        "delete_actions",
+        "owner",
+        "RLS",
+        "table_ACLs"
+      ],
+      "ownership_source": "scripts/validate_grocery_restore.py strict archive owner allowlist"
+    },
+    {
+      "names": [
+        "public.grocery_items_id_seq"
+      ],
+      "classification": "catalog_and_allowlist_derived",
+      "sources": [
+        "scripts/restore_validation/catalog_checks.sql",
+        "scripts/validate_grocery_restore.py"
+      ],
+      "coverage": [
+        "identity_by_default",
+        "name",
+        "ownership_dependency",
+        "increment",
+        "minimum",
+        "no_cycle"
+      ],
+      "acl_derivation": "owner-only postgres/public sequence default ACL and no sequence ACL archive entry",
+      "limitations": [
+        "no historical sequence value restored",
+        "start/cache/max use PostgreSQL defaults"
+      ]
+    },
+    {
+      "names": [
+        "Members can add grocery items",
+        "Members can delete grocery items",
+        "Members can read grocery items",
+        "Members can update grocery items",
+        "Users can view their own list memberships"
+      ],
+      "classification": "catalog_derived_with_behavior_corroboration",
+      "sources": [
+        "scripts/restore_validation/catalog_checks.sql",
+        "scripts/restore_validation/behavior_checks.sql"
+      ],
+      "transformation": "public qualification and explicit PERMISSIVE"
+    },
+    {
+      "names": [
+        "public.grocery_list_create_requests",
+        "public.create_grocery_list_once(uuid)"
+      ],
+      "classification": "exact_recovered_002_ddl_and_function_with_catalog_derived_explicit_ACLs",
+      "sources": [
+        "database/recovered/002_deployed_objects.reconstructed.sql",
+        "database/recovered/provenance.json",
+        "scripts/restore_validation/catalog_checks.sql"
+      ],
+      "transformation": "table/constraints precede function; expand revokes and grants to explicit catalog end state"
+    },
+    {
+      "names": [
+        "postgres/public TABLES default ACL",
+        "postgres/public SEQUENCES default ACL",
+        "postgres/public FUNCTIONS default ACL"
+      ],
+      "classification": "catalog_derived",
+      "source": "scripts/restore_validation/catalog_checks.sql",
+      "scope": "per-schema postgres defaults only; global and managed-owner defaults untouched"
+    },
+    {
+      "names": [
+        "absence of application triggers and additional indexes/constraints/objects"
+      ],
+      "classification": "catalog_and_strict_archive_allowlist_derived",
+      "sources": [
+        "scripts/validate_grocery_restore.py",
+        "scripts/restore_validation/catalog_checks.sql"
+      ]
+    }
+  ],
+  "transformations": [
+    "Preserve raw attachment separately; normalize only CRLF to LF in extracted definitions.",
+    "Remove dump headers/footers, restrict guards and dump session settings; keep exact function statements and 002 ledger DDL.",
+    "Install dependent tables/constraints before functions; wrap each fixture in a transaction with local role/search-path/function-check/storage settings.",
+    "Derive 001 table/policy/default-ACL statements from committed expected catalog, not synthetic SQL fixture.",
+    "Explicitly revoke known API/PUBLIC privileges and grant catalog-evidenced object ACLs, including postgres; expand function ALL to EXECUTE.",
+    "No data/sequence-position restoration, native Auth/role definitions, managed triggers, Realtime configuration, Migration 003 or Migration 004."
+  ],
+  "verification": {
+    "attachment_sha256_verified": true,
+    "archive_identity_matches_committed_evidence": true,
+    "archive_independently_reopened": false,
+    "archive_toc_entry_ids_independently_verified": false,
+    "original_migration_bytes_verified": false,
+    "current_production_verified": false,
+    "sql_executed": false,
+    "services_started": false
+  },
+  "limitations": [
+    "Static checks do not prove SQL compilation or native Supabase runtime behavior.",
+    "Column order and unspecified sequence/index physical options are not independently recovered.",
+    "Unknown global/default grantees, inherited memberships and managed event triggers require future fail-closed catalog verification.",
+    "Connection isolation, native Auth/API and Realtime remain separate harness work."
+  ],
+  "files": [
+    {
+      "path": "database/recovered/002_deployed_objects.reconstructed.sql",
+      "sha256": "47114babd17535ff42908e5d90ff3e6f506237f9391d312f5446873dae8ec854",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "database/recovered/MIGRATION_SOURCE_RECOVERY.md",
+      "sha256": "60ec09ac2aa2d211029056be51eb3629b57711adc1f6c08cc436a7e9f535da83",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "database/recovered/provenance.json",
+      "sha256": "f79a2d3da45ccfa85e30b4d2e1dc9cd11554ccae9ab8e43ffbe37a6678ebc9d6",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "docs/RESTORE_VERIFICATION_RESULTS.md",
+      "sha256": "0ddf4e3f441812de49e20528b3079162a0a0cb122c5288d4dc2fa3c7db706bfb",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "scripts/restore_validation/behavior_checks.sql",
+      "sha256": "c2d688de6e89376fdc59ea52a1dd4309da0f4248055e0c9c7cecad9c40ef2897",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "scripts/restore_validation/catalog_checks.sql",
+      "sha256": "89325ececc3837616747b805d9c347f59c6353b53be0e2e00ee80e2759a837f7",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "scripts/validate_grocery_restore.py",
+      "sha256": "76692ec25eb615f980cca6e5782f2753868705b3a25ed4ea6dfef77fc8a90e97",
+      "kind": "committed_evidence"
+    },
+    {
+      "path": "tests/supabase_integration/fixtures/001_grocery_prerequisites.sql",
+      "sha256": "8ea2c51ccd0f90d722c1aad71feba02b37c197526be4c0f63bcb52fd0760309a",
+      "kind": "fixture_or_provenance_source"
+    },
+    {
+      "path": "tests/supabase_integration/fixtures/002_create_once.sql",
+      "sha256": "6174aa550ebe6478cb2ad21846c640bf03b47c6e371a6d8121b299e8e2239e00",
+      "kind": "fixture_or_provenance_source"
+    },
+    {
+      "path": "tests/supabase_integration/fixtures/README.md",
+      "sha256": "b939f5206ab227acc7846f72004e82e4336123604c534b12c837cebac755a05b",
+      "kind": "fixture_or_provenance_source"
+    },
+    {
+      "path": "tests/supabase_integration/fixtures/sources/.gitattributes",
+      "sha256": "59478c46902c43ce6d3b7b4eb11763e1d220998153b1e968155986e0fd5e5de1",
+      "kind": "fixture_or_provenance_source"
+    },
+    {
+      "path": "tests/supabase_integration/fixtures/sources/grocery-three-functions.sql",
+      "sha256": "2fb39626f2928fd3a77084e8c00da01247d06e3126d160c202a29a2fa01c697d",
+      "kind": "fixture_or_provenance_source"
+    }
+  ],
+  "hash_notice": "Hashes fingerprint retained evidence and constructed outputs; they are not a signature of archive provenance. This manifest does not hash itself."
+}
