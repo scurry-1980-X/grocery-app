@@ -1,0 +1,6 @@
+ARG BASE_DIGEST
+FROM supabase/gotrue:v2.197.0@${BASE_DIGEST}
+USER 1000:1000
+HEALTHCHECK NONE
+ENTRYPOINT ["/usr/local/bin/auth"]
+CMD []

@@ -1,0 +1,254 @@
+{
+  "checkpoint": "fdc03783253d0fe2d34255ae061568002fc2d694",
+  "status": "CONFIGURATION_ONLY_RUNTIME_DISABLED",
+  "images": {
+    "db": {
+      "reference": "supabase/postgres:17.6.1.136",
+      "source_commit": "d156ba65c14694c12cc5e782bc15b9b8ed2d1376",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    },
+    "auth": {
+      "reference": "supabase/gotrue:v2.197.0",
+      "source_commit": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    },
+    "rest": {
+      "reference": "postgrest/postgrest:v14.18",
+      "source_commit": "6fafa601d13b15f9875e3a70e733ddd6f38f633e",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    },
+    "realtime": {
+      "reference": "supabase/realtime:v2.143.3",
+      "source_commit": "d46540b3a4a79113f40301d5e5cb690f41150b9b",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    },
+    "gateway": {
+      "reference": "envoyproxy/envoy:v1.39.4",
+      "source_commit": "72315c132d462e5126e492ab2a71057565dbc87a",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    },
+    "mail": {
+      "reference": "axllent/mailpit:v1.31.6",
+      "source_commit": "a028b01f4a24b4b36bdad95b8e09e070ebf2bad4",
+      "digest": null,
+      "platform": "linux/amd64",
+      "status": "UNRESOLVED_IMAGE_IDENTITY"
+    }
+  },
+  "source_commits": {
+    "supabase": "e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7",
+    "postgres": "d156ba65c14694c12cc5e782bc15b9b8ed2d1376",
+    "auth": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
+    "realtime": "d46540b3a4a79113f40301d5e5cb690f41150b9b",
+    "postgrest": "6fafa601d13b15f9875e3a70e733ddd6f38f633e",
+    "envoy": "72315c132d462e5126e492ab2a71057565dbc87a",
+    "mailpit": "a028b01f4a24b4b36bdad95b8e09e070ebf2bad4"
+  },
+  "sources": [
+    {
+      "file": "pg_src_version",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/d156ba65c14694c12cc5e782bc15b9b8ed2d1376/nix/postgresql/src.nix",
+      "sha256": "c21f94dcdfd33ada2c2d17787772c1c6c501e29b66250d6df4be70335a92c362"
+    },
+    {
+      "file": "auth_docker_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/auth/4eee58f296d9698a1c2c0ae14d7a0b379c7622d3/Dockerfile",
+      "sha256": "382271a57f2c9887652641d1a8c1c297b8da7b0839a6062565f39ddbdbde5ac3",
+      "matches_tag_source": true
+    },
+    {
+      "file": "pg_docker_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/d156ba65c14694c12cc5e782bc15b9b8ed2d1376/Dockerfile-17",
+      "sha256": "4eff99fc93e2c4957d2a866249602f28c3f270f4d9cf775e0be1659e0ba26ff3",
+      "matches_tag_source": true
+    },
+    {
+      "file": "realtime_docker_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/d46540b3a4a79113f40301d5e5cb690f41150b9b/Dockerfile",
+      "sha256": "8cc06297108b808cf83a92dfa384bd67c4f4f2b1457871afdf6aa8a4d1accb27",
+      "matches_tag_source": true
+    },
+    {
+      "file": "pgrst_docker_pinned",
+      "url": "https://raw.githubusercontent.com/PostgREST/postgrest/6fafa601d13b15f9875e3a70e733ddd6f38f633e/Dockerfile",
+      "sha256": "25ed09de3b274c96a85b3253c0147642d23059282214e054115f20f52e6fdf31",
+      "matches_tag_source": true
+    },
+    {
+      "file": "pgrst_nix_pinned",
+      "url": "https://raw.githubusercontent.com/PostgREST/postgrest/6fafa601d13b15f9875e3a70e733ddd6f38f633e/nix/tools/docker/default.nix",
+      "sha256": "4cd8b5042b63438726d8853c90c522ac0958622ac2d440f252f02ee0d5bdc2c5",
+      "matches_tag_source": true
+    },
+    {
+      "file": "envoy_docker_pinned",
+      "url": "https://raw.githubusercontent.com/envoyproxy/envoy/72315c132d462e5126e492ab2a71057565dbc87a/distribution/docker/Dockerfile-envoy",
+      "sha256": "1a82f4dd6645465c72f5ddcc127224c0403201c6b6db0d9d30d80e1e4b3673e6",
+      "matches_tag_source": true
+    },
+    {
+      "file": "mailpit_docker_pinned",
+      "url": "https://raw.githubusercontent.com/axllent/mailpit/a028b01f4a24b4b36bdad95b8e09e070ebf2bad4/Dockerfile",
+      "sha256": "e13f1453f8ad25efb62bb487fc00b89a85e208a25cd8ebeafe7363b7354ef8b6",
+      "matches_tag_source": true
+    },
+    {
+      "file": "compose_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/docker-compose.yml",
+      "sha256": "1bf8df5776dd81e9be15790851b46cdca1d0be8556450d4c88d73089d3b97a8b"
+    },
+    {
+      "file": "envoy_entry_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/api/envoy/docker-entrypoint.sh",
+      "sha256": "8a0c9503764de32ba39e0d81e73629457b13ec42ef19897e30e4918c996d0508"
+    },
+    {
+      "file": "envoy_boot_pinned",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/api/envoy/envoy.yaml",
+      "sha256": "3697f23b0be9ec5b829f937c600eb9b878f1f778ab510b42ad5e4f14742447e9"
+    },
+    {
+      "file": "envoy_lds",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/api/envoy/lds.template.yaml",
+      "sha256": "f6b7e2c7a58abf54fe0f5eba6ad144c9f0d2a8c445ab66e05b298fb64bf6fa32"
+    },
+    {
+      "file": "envoy_cds",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/api/envoy/cds.yaml",
+      "sha256": "1d7514b891370ed27c25911df008887402e16ab09273e6e433225bb7f09f7905"
+    },
+    {
+      "file": "pg_entry_pinned",
+      "url": "https://raw.githubusercontent.com/docker-library/postgres/6edb0a8c4def40c371514b34aef9037ec82d9110/17/alpine3.23/docker-entrypoint.sh",
+      "sha256": "1a6ff568c79cb847cffc4172b22a1f501cef05001b0b09751f48323683fb64a2"
+    },
+    {
+      "file": "pg_migrate",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/17.6.1.136/migrations/db/migrate.sh",
+      "sha256": "eb6a57848a73dfbc3b8e40edbadcc7a933f1099ac62cef8c138a18115655b745"
+    },
+    {
+      "file": "pg_key",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/17.6.1.136/ansible/files/pgsodium_getkey_urandom.sh.j2",
+      "sha256": "359296e6e9d3ceb2f110e10f4f7c43d878b3bf339b4cd67a6c1b9b02d2044e43"
+    },
+    {
+      "file": "pg_config",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/17.6.1.136/ansible/files/postgresql_config/postgresql.conf.j2",
+      "sha256": "6afbab2670bff0b42906a2a212d2d798e657adff4aa40398f5d99ebe95f3862a"
+    },
+    {
+      "file": "pg_init_native",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/d156ba65c14694c12cc5e782bc15b9b8ed2d1376/migrations/db/init-scripts/00000000000000-initial-schema.sql",
+      "sha256": "84588fff60ff3cadcd361c820fe502052f4c5fd5aa273740e0690c5ee59ec813"
+    },
+    {
+      "file": "pg_auth_native",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/d156ba65c14694c12cc5e782bc15b9b8ed2d1376/migrations/db/init-scripts/00000000000001-auth-schema.sql",
+      "sha256": "65a4a55ba3248716eb4946a8677be41c94bc90eafaa22c0eb95b09908f96fa4f"
+    },
+    {
+      "file": "pg_post_native",
+      "url": "https://raw.githubusercontent.com/supabase/postgres/d156ba65c14694c12cc5e782bc15b9b8ed2d1376/migrations/db/init-scripts/00000000000003-post-setup.sql",
+      "sha256": "f38552008ac577b3e65fbcab784a612b72d079f6695871c84b045a1a921f7096"
+    },
+    {
+      "file": "auth_config",
+      "url": "https://raw.githubusercontent.com/supabase/auth/4eee58f296d9698a1c2c0ae14d7a0b379c7622d3/internal/conf/configuration.go",
+      "sha256": "b27faebba541f907b23d2ce2dcab8c4679b5ce49cf1fcee007778f1b53230773"
+    },
+    {
+      "file": "realtime_run",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/v2.143.3/run.sh",
+      "sha256": "e0f089b7da0e93a4f4164c240c3265b3aa44ead800a6818350b8534c689d98d5"
+    },
+    {
+      "file": "realtime_env",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/v2.143.3/rel/env.sh.eex",
+      "sha256": "3fbe75e1c0ea82357e01a38af7666f2f54fac8e389c303084a45a48aeb178121"
+    },
+    {
+      "file": "realtime_migrate",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/v2.143.3/rel/overlays/bin/migrate",
+      "sha256": "60e7da990256ee852e62d7228bbb48481505eaf416a1e93db74737ada277a7ce"
+    },
+    {
+      "file": "realtime_runtime",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/d46540b3a4a79113f40301d5e5cb690f41150b9b/config/runtime.exs",
+      "sha256": "3fca6db3868e01a56f47d2590c62299564a7915f889920303170f2e8c20c688e"
+    },
+    {
+      "file": "realtime_seeds",
+      "url": "https://raw.githubusercontent.com/supabase/realtime/d46540b3a4a79113f40301d5e5cb690f41150b9b/priv/repo/seeds.exs",
+      "sha256": "81bddd02ad0e291524dfc65453a7cd961bf8c75d9881cd13cd28a967c2f532f6"
+    },
+    {
+      "file": "elixir_release",
+      "url": "https://raw.githubusercontent.com/elixir-lang/elixir/v1.19.5/lib/mix/lib/mix/tasks/release.ex",
+      "sha256": "06ae0dad322a57aab66258ba921b49eef5fb59a03c3f25fb51b42f9a93bb3884"
+    },
+    {
+      "file": "envoy_entry_native",
+      "url": "https://raw.githubusercontent.com/envoyproxy/envoy/v1.39.4/distribution/docker/docker-entrypoint.sh",
+      "sha256": "eba28d4aff599ba904d8bd0db317d58930b62cdce6ceecd5d9f8281224392bec"
+    },
+    {
+      "file": "envoy_release",
+      "url": "https://github.com/envoyproxy/envoy/releases/tag/v1.39.4",
+      "sha256": "93c2767f12c7caf4453d1333657d8f165d05f65b1b1176fa0b4e77282ba84419"
+    },
+    {
+      "file": "mailpit_db",
+      "url": "https://raw.githubusercontent.com/axllent/mailpit/v1.31.6/internal/storage/database.go",
+      "sha256": "43ee89a3f8937f0d1f2c1437c6e4dac91ac1fefcbb9d92a53dfebc04f507843f"
+    },
+    {
+      "file": "mailpit_cmd",
+      "url": "https://raw.githubusercontent.com/axllent/mailpit/v1.31.6/cmd/root.go",
+      "sha256": "ff2ba34b71aa838406ab2772905a0e8a4d7d40aff649a9de0dc15f2b73e631d4"
+    },
+    {
+      "file": "docker_volumes_src",
+      "url": "https://raw.githubusercontent.com/docker/docs/main/content/manuals/engine/storage/volumes.md",
+      "sha256": "4c285d997b9519ade9c8db2e49294e2c3b07b7b6b7422050822a909103a717fb"
+    }
+  ],
+  "unchanged_files": {
+    "scripts/run_supabase_integration.py": "3a70290625dfb85640158fbe0f55bc275e5cbacaba98010d20a6e69b68cd45c3",
+    "tests/supabase_integration/support/safety.py": "52d4c133b4d2199f5ebf0b5d0517e2d25fca6115fff2529f59568a60ecfe6ba2",
+    "tests/test_supabase_integration_safety.py": "6c7000b9583392e0644cc027a04da475404c25b0ac120a327f4c549209090e84",
+    "tests/supabase_integration/fixtures/001_grocery_prerequisites.sql": "8ea2c51ccd0f90d722c1aad71feba02b37c197526be4c0f63bcb52fd0760309a",
+    "tests/supabase_integration/fixtures/002_create_once.sql": "6174aa550ebe6478cb2ad21846c640bf03b47c6e371a6d8121b299e8e2239e00",
+    "tests/supabase_integration/fixtures/README.md": "b939f5206ab227acc7846f72004e82e4336123604c534b12c837cebac755a05b",
+    "tests/supabase_integration/fixtures/provenance.json": "c3b616677d2988497d2a75686a11a56389dedffaae75de047d09b7945ad5cf74",
+    "tests/supabase_integration/fixtures/sources/.gitattributes": "59478c46902c43ce6d3b7b4eb11763e1d220998153b1e968155986e0fd5e5de1",
+    "tests/supabase_integration/fixtures/sources/grocery-three-functions.sql": "2fb39626f2928fd3a77084e8c00da01247d06e3126d160c202a29a2fa01c697d"
+  },
+  "limits": [
+    "Source hashes are not OCI image/index/platform digests.",
+    "32 cached source hashes reverified offline; seven core tag/commit comparisons were made in the earlier authorized review.",
+    "No network fetches, image pulls, builds, containers or SQL execution in Task #2.",
+    "Upstream docker/volumes/db/realtime.sql at e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7 was referenced by Compose but not captured. Its contents/hash are unresolved. No replacement bootstrap or schema statements are supplied; runtime remains blocked.",
+    "The reviewed source cache is not vendored; these hashes identify prior evidence, not a new independent upstream verification."
+  ],
+  "unresolved_sources": [
+    {
+      "url": "https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
+      "sha256": null,
+      "contents_available": false,
+      "evidence": "Referenced by the cached pinned Compose source; body not captured.",
+      "replacement_supplied": false,
+      "blocks_runtime": true
+    }
+  ]
+}

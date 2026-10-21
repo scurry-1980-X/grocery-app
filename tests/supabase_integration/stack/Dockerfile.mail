@@ -1,0 +1,11 @@
+ARG BASE_DIGEST
+FROM axllent/mailpit:v1.31.6@${BASE_DIGEST}
+USER 0:0
+RUN addgroup -g 10001 grocery && adduser -D -H -u 10001 -G grocery grocery \
+    && mkdir -p /var/lib/grocery-harness/home /var/lib/grocery-harness/tmp \
+    && chown -R 10001:10001 /var/lib/grocery-harness
+USER 10001:10001
+WORKDIR /var/lib/grocery-harness
+HEALTHCHECK NONE
+ENTRYPOINT ["/mailpit"]
+CMD []

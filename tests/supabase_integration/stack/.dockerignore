@@ -1,0 +1,9 @@
+**
+!Dockerfile.*
+!common.sh
+!postgres.sh
+!postgres-passwords.sh
+!realtime.sh
+!gateway.sh
+!gateway.json
+!gateway.lua

@@ -1,0 +1,7 @@
+ARG BASE_DIGEST
+FROM postgrest/postgrest:v14.18@${BASE_DIGEST}
+# Do not assume a shell exists in the upstream static image.
+USER 1000:1000
+HEALTHCHECK NONE
+ENTRYPOINT ["/bin/postgrest"]
+CMD []

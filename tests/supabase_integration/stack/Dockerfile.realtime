@@ -1,0 +1,25 @@
+ARG BASE_DIGEST
+FROM supabase/realtime:v2.143.3@${BASE_DIGEST}
+USER 0:0
+RUN groupadd -g 10001 grocery && useradd -u 10001 -g 10001 -M grocery \
+    && mkdir -p /var/lib/grocery-harness/home /var/lib/grocery-harness/tmp \
+       /var/lib/grocery-harness/release \
+    && chown -R 10001:10001 /var/lib/grocery-harness \
+    && xz -dc /usr/local/share/pgdelta/pgdelta.xz > /app/.pgdelta-cache/pgdelta \
+    && chmod 0555 /app/.pgdelta-cache/pgdelta
+# Keep bundled native SQL intact. Narrow runtime config change, matched exactly;
+# a changed upstream layout/text must fail the future build, not silently drift.
+RUN set -eu; set -- /app/releases/*/runtime.exs; test "$#" = 1; test -f "$1"; \
+    test "$(grep -Fc 'url: [host: "#{app_name}.supabase.co", port: 443],' "$1")" = 1; \
+    sed -i 's|url: \[host: "#{app_name}.supabase.co", port: 443\],|url: [host: "realtime", port: 4000, scheme: "http"],|' "$1"
+# Replace metadata-aware node discovery with a single-container local node.
+RUN set -eu; set -- /app/releases/*/env.sh; test "$#" = 1; test -f "$1"; \
+    printf '%s\n' '#!/bin/sh' 'export RELEASE_DISTRIBUTION=name' \
+      'export RELEASE_NODE=realtime@127.0.0.1' > "$1"
+# No package installs or executable downloads.
+COPY common.sh realtime.sh /harness/
+USER 10001:10001
+WORKDIR /app
+HEALTHCHECK NONE
+ENTRYPOINT ["/usr/bin/tini", "-s", "-g", "--", "/bin/sh", "/harness/realtime.sh"]
+CMD []

@@ -1,0 +1,239 @@
+{
+  "static_resources": {
+    "listeners": [
+      {
+        "name": "grocery",
+        "address": {
+          "socket_address": {
+            "address": "0.0.0.0",
+            "port_value": 54321
+          }
+        },
+        "filter_chains": [
+          {
+            "filters": [
+              {
+                "name": "envoy.filters.network.http_connection_manager",
+                "typed_config": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                  "stat_prefix": "grocery",
+                  "codec_type": "AUTO",
+                  "upgrade_configs": [
+                    {
+                      "upgrade_type": "websocket"
+                    }
+                  ],
+                  "route_config": {
+                    "name": "grocery",
+                    "virtual_hosts": [
+                      {
+                        "name": "grocery",
+                        "domains": [
+                          "*"
+                        ],
+                        "routes": [
+                          {
+                            "name": "auth-health",
+                            "match": {
+                              "path": "/auth/v1/health"
+                            },
+                            "route": {
+                              "cluster": "auth",
+                              "prefix_rewrite": "/health",
+                              "timeout": "30s"
+                            }
+                          },
+                          {
+                            "name": "auth-verify",
+                            "match": {
+                              "path": "/auth/v1/verify",
+                              "headers": [
+                                {
+                                  "name": ":method",
+                                  "string_match": {
+                                    "exact": "GET"
+                                  }
+                                }
+                              ]
+                            },
+                            "route": {
+                              "cluster": "auth",
+                              "prefix_rewrite": "/verify",
+                              "timeout": "30s"
+                            }
+                          },
+                          {
+                            "name": "auth",
+                            "match": {
+                              "prefix": "/auth/v1/"
+                            },
+                            "route": {
+                              "cluster": "auth",
+                              "prefix_rewrite": "/",
+                              "timeout": "30s"
+                            }
+                          },
+                          {
+                            "name": "rest",
+                            "match": {
+                              "prefix": "/rest/v1/"
+                            },
+                            "route": {
+                              "cluster": "rest",
+                              "prefix_rewrite": "/",
+                              "timeout": "30s"
+                            }
+                          },
+                          {
+                            "name": "realtime",
+                            "match": {
+                              "path": "/realtime/v1/websocket"
+                            },
+                            "route": {
+                              "cluster": "realtime",
+                              "prefix_rewrite": "/socket/websocket",
+                              "timeout": "0s",
+                              "host_rewrite_literal": "@TENANT@.supabase-realtime",
+                              "upgrade_configs": [
+                                {
+                                  "upgrade_type": "websocket"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "name": "unmatched",
+                            "match": {
+                              "prefix": "/"
+                            },
+                            "direct_response": {
+                              "status": 404
+                            }
+                          }
+                        ],
+                        "typed_per_filter_config": {
+                          "envoy.filters.http.cors": {
+                            "@type": "type.googleapis.com/envoy.extensions.filters.http.cors.v3.CorsPolicy",
+                            "allow_origin_string_match": [
+                              {
+                                "exact": "http://127.0.0.1:54321"
+                              }
+                            ],
+                            "allow_methods": "GET,POST,PATCH,DELETE,OPTIONS,PUT,HEAD",
+                            "allow_headers": "authorization,apikey,content-type,x-client-info,prefer,range,accept-profile,content-profile",
+                            "expose_headers": "content-range,preference-applied",
+                            "max_age": "600"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "http_filters": [
+                    {
+                      "name": "envoy.filters.http.cors",
+                      "typed_config": {
+                        "@type": "type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors"
+                      }
+                    },
+                    {
+                      "name": "envoy.filters.http.lua",
+                      "typed_config": {
+                        "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+                        "default_source_code": {
+                          "filename": "/var/lib/grocery-harness/gateway.lua"
+                        }
+                      }
+                    },
+                    {
+                      "name": "envoy.filters.http.router",
+                      "typed_config": {
+                        "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "clusters": [
+      {
+        "name": "auth",
+        "type": "STRICT_DNS",
+        "connect_timeout": "5s",
+        "dns_lookup_family": "V4_ONLY",
+        "load_assignment": {
+          "cluster_name": "auth",
+          "endpoints": [
+            {
+              "lb_endpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "auth",
+                        "port_value": 9999
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "rest",
+        "type": "STRICT_DNS",
+        "connect_timeout": "5s",
+        "dns_lookup_family": "V4_ONLY",
+        "load_assignment": {
+          "cluster_name": "rest",
+          "endpoints": [
+            {
+              "lb_endpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "rest",
+                        "port_value": 3000
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "realtime",
+        "type": "STRICT_DNS",
+        "connect_timeout": "5s",
+        "dns_lookup_family": "V4_ONLY",
+        "load_assignment": {
+          "cluster_name": "realtime",
+          "endpoints": [
+            {
+              "lb_endpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "realtime",
+                        "port_value": 4000
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

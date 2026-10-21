@@ -1,0 +1,24 @@
+# Definition only. BASE_DIGEST is deliberately unresolved in the offline plan.
+ARG BASE_DIGEST
+FROM supabase/postgres:17.6.1.136@${BASE_DIGEST}
+USER 0:0
+# Image-build ownership preparation; never a root runtime/init container.
+RUN groupmod -g 10001 postgres && usermod -u 10001 -g 10001 postgres \
+    && mkdir -p /var/lib/postgresql/data/pgdata \
+       /var/lib/grocery-harness/socket /var/lib/grocery-harness/home \
+       /var/lib/grocery-harness/tmp /var/lib/grocery-harness/keys \
+    && chown -R 10001:10001 /var/lib/postgresql /var/lib/grocery-harness \
+       /etc/postgresql /etc/postgresql-custom \
+    && rm -rf /var/run/postgresql \
+    && ln -s /var/lib/grocery-harness/socket /var/run/postgresql \
+    && test ! -e /etc/postgresql-custom/pgsodium_root.key \
+    && ln -s /var/lib/grocery-harness/keys/pgsodium_root.key /etc/postgresql-custom/pgsodium_root.key
+COPY common.sh postgres.sh /harness/
+COPY postgres-passwords.sh /docker-entrypoint-initdb.d/zz-harness-passwords.sh
+# Keep this sourced init script non-executable; native entrypoint exports helpers.
+RUN chmod 0444 /docker-entrypoint-initdb.d/zz-harness-passwords.sh
+USER 10001:10001
+WORKDIR /var/lib/grocery-harness
+HEALTHCHECK NONE
+ENTRYPOINT ["/bin/sh", "/harness/postgres.sh"]
+CMD []

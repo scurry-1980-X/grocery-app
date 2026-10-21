@@ -1,9 +1,9 @@
-# Disposable Supabase integration harness — Task #1
+# Disposable Supabase integration harness — Tasks #1 and #2
 
-**Offline skeleton only. No stack, services, database connections, SQL execution,
-cleanup implementation or deployment. Migration 003 remains NO-GO for production.**
-Based on `codex/isolated-restore-verification` at
-`86e0caca2d5cb27bc2644e042d28ae6db2a5bfd3`. The reviewed baseline under
+**Offline configuration only. No service startup, database connections, SQL
+execution, cleanup implementation or deployment. Migration 003 remains NO-GO for
+production.** Task #2 builds on `codex/isolated-restore-verification` at
+`fdc03783253d0fe2d34255ae061568002fc2d694`. The reviewed baseline under
 [`fixtures/`](fixtures/README.md) is unchanged and is not loaded by this harness.
 
 ## What exists
@@ -16,6 +16,16 @@ Based on `codex/isolated-restore-verification` at
 - `tests/test_supabase_integration_safety.py`: positive and negative tests with
   synthetic policies; DNS, socket and process creation are forbidden in the
   entry-point test. Existing fixture provenance tests remain separate.
+
+- `support/stack.py`: in-memory generation and whole-document validation of a
+  six-service Compose definition, followed by the unchanged Task #1 policy checks.
+  No caller-supplied URLs, credentials, image names or overrides are accepted.
+- `stack/`: six digest-required derived-image definitions, startup/path adapters,
+  gateway configuration, and [provenance/deviations](stack/PROVENANCE.md).
+- `tests/test_supabase_integration_stack.py`: offline definition and mutation tests.
+- `tests/test_supabase_gateway.py`: the actual gateway Lua filter exercised with
+  in-memory Envoy stubs. Requires an already-installed liblua 5.3 or 5.4; it fails
+  explicitly if unavailable, rather than silently skipping the key-behavior tests.
 
 From the repository root:
 
@@ -69,8 +79,9 @@ It writes no run journal, credentials, configuration or other artifacts.
    explicitly reserved data paths are allowed. Bind mounts, sockets, host paths,
    propagation settings, unexpected/duplicate targets and foreign volumes fail.
    Unknown container fields—including environment, secrets, Compose overrides,
-   image/build/command fields—are unsupported and rejected by this safety
-   projection. These are not yet full container specifications.
+   image/build/command fields—remain rejected by this safety projection. Task #2
+   separately validates the entire generated Compose document before checking
+   the projection; it does not strip unknown settings into a safe-looking record.
 7. **Run ownership.** A cryptographically random 128-bit nonce is generated once
    per preflight. Resource names and labels encode the exact nonce, owner, kind
    and component. Prefix matches alone never establish ownership. Future
@@ -83,12 +94,37 @@ It writes no run journal, credentials, configuration or other artifacts.
 
 ## Later stages and remaining enforcement gaps
 
-A later authorized task must provide a reviewed, pinned native Supabase stack
-(Auth, PostgREST, PostgreSQL/RLS/RPC and Realtime), generated per-run credentials,
-a protected ownership journal, real daemon/context/resource inspection, and
-isolated creation/teardown. Existing local containers/volumes are unrelated and
-must not be reused. The current restrictive policy has **not** been proved
-compatible with official images; any required exceptions need explicit review.
+Task #2 now defines PostgreSQL, Auth, PostgREST, Realtime, Envoy and Mailpit.
+It does not build or run them. All six services have explicit non-root users,
+read-only root filesystems, dropped capabilities and no-new-privileges. One
+nonce-owned internal bridge and five nonce-owned named volumes are defined.
+Only `/var/lib/postgresql/data` and `/var/lib/grocery-harness` may be mounted;
+Auth and PostgREST have no writable volume. No host ports, bind mounts or external
+services are defined. Existing local containers/volumes must not be reused.
+
+The full Compose definition is generated in memory with fresh run names/labels;
+there is intentionally no reusable checked-in Compose run file or export CLI.
+`create_plan(environment)` rejects ambient configuration, produces only invalid
+credential placeholders, and validates the whole result. It never forwards the
+supplied environment. Tests are the supported way to exercise this API in Task #2.
+The existing CLI still accepts only `preflight` and `--help`.
+
+Runtime stays blocked: all Compose entrypoints point to an absent blocker path,
+healthchecks are disabled, derived images cannot be pulled, image digests are
+unresolved, and `require_runtime_ready` always rejects. No runtime-enable flag or
+secret-generation path exists. See [the complete design and limitations](stack/PROVENANCE.md)
+for all adaptations, native bootstrap prerequisites and source evidence.
+
+**Unresolved Realtime provenance:** the pinned official Compose file references
+`docker/volumes/db/realtime.sql`, whose body was not captured by the source review.
+This task supplies no guessed replacement. Recover and review that exact upstream
+file before implementing its bootstrap dependency or approving runtime execution.
+
+A later authorized task must resolve image digests/platform identity and native
+bootstrap parity, build and verify adapted images, generate and protect local
+credentials, implement readiness and a protected ownership journal, inspect the
+real daemon/resources, and provide isolated creation/teardown. The guards remain
+unchanged; runtime compatibility is still **unproven**.
 
 The future executor must validate the full effective configuration, not silently
 filter dangerous settings into a safe-looking projection. It must start from a
