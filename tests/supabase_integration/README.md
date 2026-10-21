@@ -6,6 +6,16 @@ production.** Task #2 builds on `codex/isolated-restore-verification` at
 `fdc03783253d0fe2d34255ae061568002fc2d694`. The reviewed baseline under
 [`fixtures/`](fixtures/README.md) is unchanged and is not loaded by this harness.
 
+**Current gate — Task #4A:** [build-preflight evidence and findings](preflight/README.md)
+verify six pinned image configuration blobs and a reproducible 15-file context
+snapshot. Read-only inspection reports an amd64 local default builder, but
+independent daemon binding and exclusive cache/GC ownership remain unproven.
+**NO-GO for Task #4B builds in the inspected environment.** No build/runtime
+executor was added; all earlier guards and stack definitions are unchanged.
+`support/build_preflight.py` and `tests/test_supabase_build_preflight.py` provide
+offline evidence/context/output-identity checks only. Historical recommendations
+below describe their respective task checkpoints; this current gate takes priority.
+
 ## What exists
 
 - `scripts/run_supabase_integration.py`: only `preflight` and `--help` are

@@ -1,0 +1,63 @@
+{
+  "checkpoint": "c5f1d886e3094c7c3963dbf2c16520d4a4460a80",
+  "observed_at": "2026-10-21T21:03:03.476486+00:00",
+  "status": "PREFLIGHT_ONLY_BUILD_AND_RUNTIME_DISABLED",
+  "context": {
+    "name": "default",
+    "host": "unix:///var/run/docker.sock",
+    "skip_tls_verify": false
+  },
+  "daemon": {
+    "id": "969f6627-7b4d-4212-b159-027363ed7d6c",
+    "name": "9e39c1f1212f",
+    "engine_version": "28.4.0",
+    "api_version": "1.51",
+    "os": "linux",
+    "architecture": "amd64",
+    "storage_driver": "vfs",
+    "swarm": "inactive",
+    "socket_is_symlink": false,
+    "socket_uid": 65534,
+    "socket_gid": 1000,
+    "local_process_pid": 183,
+    "local_process_uid": 65534,
+    "command_has_fixed_unix_listener": true,
+    "socket_inode_seen_in_proc_net_unix": "2173",
+    "socket_fd_binding_verified": false,
+    "daemon_pidfile_readable": false,
+    "daemon_network_namespace_comparison_available": false
+  },
+  "builder": {
+    "name": "default",
+    "driver": "docker",
+    "endpoint": "default",
+    "buildkit_version": "v0.24.0",
+    "status_reported": "running",
+    "platforms": [
+      "linux/amd64",
+      "linux/amd64/v2",
+      "linux/amd64/v3",
+      "linux/amd64/v4"
+    ],
+    "bootstrapped": false,
+    "cache_isolation_verified": false,
+    "shared_daemon_gc_has_all_true_rule": true
+  },
+  "inspection_notes": [
+    "Read-only docker context inspect default, explicit Unix-host version/info, and buildx inspect default; never --bootstrap.",
+    "Initial buildx inspection could not mkdir under read-only /home/agent/.docker; retried with a temporary BUILDX_CONFIG and inherited Docker/Buildx/BuildKit/Compose/Container selectors removed for this inspection only. No harness environment guard changed.",
+    "Local dockerd process and command line agree with socket/daemon metadata, but /proc/183/fd, /proc/183/ns/net and /run/codex-docker/dockerd.pid are not readable. This is consistent with local execution, not independent listener binding proof.",
+    "GC rules include shared local-source/exec-cache/git cache and an All:true rule; no GC, resource deletion or policy modification was requested.",
+    "Registry configs fetched by descriptors in committed amd64 manifests, using anonymous public-repository tokens held in memory, normal proxy/TLS and bounded config-only reads.",
+    "Initial registry redirect was rejected; after hostname inspection only official production.cloudfront.docker.com redirects were allowed, without forwarding registry Authorization. Signed CDN query strings/tokens were not retained. This is Docker CDN metadata, not production Supabase."
+  ],
+  "image_config_evidence_sha256": "9a9affe22b1b37aa993f03f2d749526ee0460cdae945ef85e1045fbbc790db47",
+  "context_archive_sha256": "275f942a17514ee388187349d6b39e247662a83f65f703338c5e0bb594943f0d",
+  "build_authorized": false,
+  "runtime_authorized": false,
+  "blockers": [
+    "Independent local socket-to-daemon identity binding incomplete in this execution environment.",
+    "Default builder cache is daemon-wide; no reviewed exclusive cache ownership/GC boundary.",
+    "No reviewed build-only executor, protected per-run journal or validated-context consumption path."
+  ]
+}

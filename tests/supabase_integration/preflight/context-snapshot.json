@@ -1,0 +1,83 @@
+{
+  "checkpoint": "c5f1d886e3094c7c3963dbf2c16520d4a4460a80",
+  "format": "USTAR; sorted files; evidence directory first; uid/gid/mtime zero; file mode 0644; directory mode 0755; empty owner names",
+  "archive_sha256": "275f942a17514ee388187349d6b39e247662a83f65f703338c5e0bb594943f0d",
+  "archive_size": 40960,
+  "files": {
+    ".dockerignore": {
+      "sha256": "604ab3b1e7dc57e7455eae2851ed1a066e526945e094c33d39f81c95f18068ed",
+      "size": 162,
+      "mode": "0644"
+    },
+    "Dockerfile.auth": {
+      "sha256": "4c9ba4bdf92251a0719769bf2a9909935d40e8fd89901a1b74fdafa328bfa090",
+      "size": 176,
+      "mode": "0644"
+    },
+    "Dockerfile.db": {
+      "sha256": "a1728c8a99cbd7ac914db33b14e88b0f7e442116e6a5b03686ad5c50befc3229",
+      "size": 1697,
+      "mode": "0644"
+    },
+    "Dockerfile.gateway": {
+      "sha256": "d0a31e5e6e2e9d905e1b195de843a5e13bba04785d8ae38eb56a211bc5cebc37",
+      "size": 494,
+      "mode": "0644"
+    },
+    "Dockerfile.mail": {
+      "sha256": "4123887adcd7dcf25a692125dcb9ef799e8180380fda90950da70cdf67af1021",
+      "size": 415,
+      "mode": "0644"
+    },
+    "Dockerfile.realtime": {
+      "sha256": "afca01fe2c4b90f7697a9e155d43d644d4b8d3d8731514f6e3fd2ef94f73594c",
+      "size": 1436,
+      "mode": "0644"
+    },
+    "Dockerfile.rest": {
+      "sha256": "b63880e908f4673c9487ed1a672ca941aeb6ffb999f3d05da51a01bbd5a88eee",
+      "size": 234,
+      "mode": "0644"
+    },
+    "common.sh": {
+      "sha256": "2781805d6f0686f6a07ea874802d17979cd03375b86f186bf3da4752a4c84a66",
+      "size": 739,
+      "mode": "0644"
+    },
+    "evidence/realtime.sql": {
+      "sha256": "7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88",
+      "size": 117,
+      "mode": "0644"
+    },
+    "gateway.json": {
+      "sha256": "4eafe1e4bdff826c668c0437d6aca2ba1cd2e6e6903805fcd9e04bf122341727",
+      "size": 8280,
+      "mode": "0644"
+    },
+    "gateway.lua": {
+      "sha256": "eb4659c1fc74d1c3c62c28d9dee8a885d5ecb8ca3d0a0d36fe576af31ad94d5b",
+      "size": 3276,
+      "mode": "0644"
+    },
+    "gateway.sh": {
+      "sha256": "8ae5e9b8a59366e6e12d45ef8f8a5fcf408ff7d057dd0c6109124def6c523255",
+      "size": 1248,
+      "mode": "0644"
+    },
+    "postgres-passwords.sh": {
+      "sha256": "91d817942d75d3bec07ec33333322e002449af4bf339805b5c7b52f6f331cf23",
+      "size": 706,
+      "mode": "0644"
+    },
+    "postgres.sh": {
+      "sha256": "be0005302a1530683062d7361120df70acde1a760d0d61708cbdc24dde280f7f",
+      "size": 1247,
+      "mode": "0644"
+    },
+    "realtime.sh": {
+      "sha256": "f3aafedd0d33d526c016ddb2d9784bc978098bfecc15f295f969b59b3775dddb",
+      "size": 982,
+      "mode": "0644"
+    }
+  }
+}
