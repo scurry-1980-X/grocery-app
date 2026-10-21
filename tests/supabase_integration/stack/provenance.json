@@ -5,44 +5,212 @@
     "db": {
       "reference": "supabase/postgres:17.6.1.136",
       "source_commit": "d156ba65c14694c12cc5e782bc15b9b8ed2d1376",
-      "digest": null,
+      "digest": "sha256:f371b5f3f2ac0a05703f33d6e6134515fb2498cab708fb948a0aeb7481467c00",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.368831+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:5a4314708484bec672de2c09653a5c01fb1c84a998564ac231b0325e2238ed5b",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:f519727303f0af6862882be2a30f420e28710d4209226e681aaddb2c01d12d9b",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:a9946f08d31e8eb1149229c94e5c26603a9233116807cbbd93d75179cbac516a",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:c5ac0bc3cd8d4896da4a75d2d8ed5a2c0c2bd11ef3cb023f1159d673025f168a",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:5a4314708484bec672de2c09653a5c01fb1c84a998564ac231b0325e2238ed5b",
+      "source_commit_to_published_image_binding_verified": false
     },
     "auth": {
       "reference": "supabase/gotrue:v2.197.0",
       "source_commit": "4eee58f296d9698a1c2c0ae14d7a0b379c7622d3",
-      "digest": null,
+      "digest": "sha256:1736a63078f5922b198c4cbe50f80ab9a2d3b54fe8b7b6cfb2e9dc5dbbc12c6b",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.371856+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:1181bff5ba4ce440013a63cef9f4cf13024c432d705c9b1fbc9e5b949e852f48",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:3439d5affb9e96395d1348521f4c675eea7096d8d76d18d4e31fcc08df802116",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:1fe404919398421de491a1580e1dcce1faca055e985fd9bd9029520880845056",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f",
+      "source_commit_to_published_image_binding_verified": false
     },
     "rest": {
       "reference": "postgrest/postgrest:v14.18",
       "source_commit": "6fafa601d13b15f9875e3a70e733ddd6f38f633e",
-      "digest": null,
+      "digest": "sha256:c7cd7e265a85b05248abf53f4473fcec7e327c282d0bd0cf60f1551996d09fcf",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.373167+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:c847127074bd26e1b8d3f7c0e6e01e5346f4b85dd34f5d699fd230af960827c0",
+          "media_type": "application/vnd.docker.distribution.manifest.v2+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:455fe971661e8c8c2722aece9f1e40e15871fb350724ca5433d54e40f5ade3c8",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:dfa6464b877fa7b1b0be85740f6ce6985144b509a6edb5f09c5ee67e687e8c1f",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:a35fb2de75b023f91f6a95495170808a1d874a097a136ec591ae5c2d0a74c8e8",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:c847127074bd26e1b8d3f7c0e6e01e5346f4b85dd34f5d699fd230af960827c0",
+      "source_commit_to_published_image_binding_verified": false
     },
     "realtime": {
       "reference": "supabase/realtime:v2.143.3",
       "source_commit": "d46540b3a4a79113f40301d5e5cb690f41150b9b",
-      "digest": null,
+      "digest": "sha256:768b559241dd234c4e8852c5c0f504e598b80f1df2ad4dd78d5486fbed2f17a2",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.373871+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:1591e9049bf15fd392da9e8344db892f6acfe9da274517327dbd14733f32b9e1",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:e01aa9d85dc543a64c427e15002c544bbe03467d14741de7b69787aaf2e40177",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:39abd3593110424c8512ffdaefd6b3ef016a5867065a87c1658e9bc55199a464",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:844c5329b6b8dabe15d9e417f10c1982722895ce525b12c75061c40de3c34ba5",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:1591e9049bf15fd392da9e8344db892f6acfe9da274517327dbd14733f32b9e1",
+      "source_commit_to_published_image_binding_verified": false
     },
     "gateway": {
       "reference": "envoyproxy/envoy:v1.39.4",
       "source_commit": "72315c132d462e5126e492ab2a71057565dbc87a",
-      "digest": null,
+      "digest": "sha256:74bd4eb5629708d3fadca1a5e6b85d208f338d7bb54e06b69565905c5294cc01",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.380894+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:63dd445d23d7d419d1bba8b2b9b1b8fdb80f38ae1516fb5d2dcd8856713b7eac",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:d4800f30429fc946d03932a6055a2d52c70183aa60487f9da38899f1543dfe6a",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:ce82b213b2c9190aa9fa2fc76678743a690681cbd668de32dd749e3e4da52862",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:a084f595b889eb2e7c9af1abcc7565a9520fd45b63a7653f5181a55dd2cc9735",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:63dd445d23d7d419d1bba8b2b9b1b8fdb80f38ae1516fb5d2dcd8856713b7eac",
+      "source_commit_to_published_image_binding_verified": false
     },
     "mail": {
       "reference": "axllent/mailpit:v1.31.6",
       "source_commit": "a028b01f4a24b4b36bdad95b8e09e070ebf2bad4",
-      "digest": null,
+      "digest": "sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387",
       "platform": "linux/amd64",
-      "status": "UNRESOLVED_IMAGE_IDENTITY"
+      "status": "VERIFIED_REGISTRY_MANIFESTS_NOT_RUNTIME",
+      "digest_kind": "oci_image_index",
+      "observed_at": "2026-10-21T16:08:09.381864+00:00",
+      "platform_manifests": {
+        "linux/amd64": {
+          "digest": "sha256:059454962fbda891cfa621c86a251cfd9cfe645cb43e0dcd9351a35e7a8f3155",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:978742ab0aca1fb510b407aa54d3cc9fb1d51ca4988ce0bc6fbdb1fdc6afbc4c",
+          "config_fetched": false,
+          "manifest_verified": true
+        },
+        "linux/arm64": {
+          "digest": "sha256:cc34e6c1995288cd30a4d2bf7fe5cded246c6f2b7fa8199bbc911205721f76dc",
+          "media_type": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "arm64",
+            "os": "linux"
+          },
+          "config_digest": "sha256:ccc6333ca446fbdacb087288a9b66096cd5cd3a9e99c12e1dee3b1df9ea6e7d0",
+          "config_fetched": false,
+          "manifest_verified": true
+        }
+      },
+      "selected_platform_digest": "sha256:059454962fbda891cfa621c86a251cfd9cfe645cb43e0dcd9351a35e7a8f3155",
+      "source_commit_to_published_image_binding_verified": false
     }
   },
   "source_commits": {
@@ -221,6 +389,20 @@
       "file": "docker_volumes_src",
       "url": "https://raw.githubusercontent.com/docker/docs/main/content/manuals/engine/storage/volumes.md",
       "sha256": "4c285d997b9519ade9c8db2e49294e2c3b07b7b6b7422050822a909103a717fb"
+    },
+    {
+      "file": "realtime_bootstrap",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
+      "sha256": "7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88",
+      "local_path": "evidence/realtime.sql",
+      "size": 117,
+      "source_commit": "e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7",
+      "source_path": "docker/volumes/db/realtime.sql",
+      "github_blob_page_url": "https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
+      "github_page_commit_and_lines_match": true,
+      "git_blob_sha1_derived": "4d4b9ffb912b9312dd78257956c180f12913264d",
+      "transformation": "none; original response bytes preserved",
+      "runtime_installed": false
     }
   ],
   "unchanged_files": {
@@ -238,17 +420,59 @@
     "Source hashes are not OCI image/index/platform digests.",
     "32 cached source hashes reverified offline; seven core tag/commit comparisons were made in the earlier authorized review.",
     "No network fetches, image pulls, builds, containers or SQL execution in Task #2.",
-    "Upstream docker/volumes/db/realtime.sql at e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7 was referenced by Compose but not captured. Its contents/hash are unresolved. No replacement bootstrap or schema statements are supplied; runtime remains blocked.",
-    "The reviewed source cache is not vendored; these hashes identify prior evidence, not a new independent upstream verification."
+    "The earlier source cache is not vendored. Task #3A vendors the exact recovered Realtime SQL and raw registry manifest bodies as evidence only.",
+    "Task #3A verifies publisher registry manifest identities, not signatures, binary architectures, source-to-image attestations or runtime compatibility.",
+    "All Task #2 runtime/build blockers and placeholder build arguments remain unchanged; verified metadata is not automatically wired into the generator."
   ],
-  "unresolved_sources": [
+  "unresolved_sources": [],
+  "resolved_sources": [
     {
-      "url": "https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
-      "sha256": null,
-      "contents_available": false,
-      "evidence": "Referenced by the cached pinned Compose source; body not captured.",
-      "replacement_supplied": false,
-      "blocks_runtime": true
+      "file": "realtime_bootstrap",
+      "url": "https://raw.githubusercontent.com/supabase/supabase/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
+      "sha256": "7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88",
+      "local_path": "evidence/realtime.sql",
+      "size": 117,
+      "source_commit": "e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7",
+      "source_path": "docker/volumes/db/realtime.sql",
+      "github_blob_page_url": "https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql",
+      "github_page_commit_and_lines_match": true,
+      "git_blob_sha1_derived": "4d4b9ffb912b9312dd78257956c180f12913264d",
+      "transformation": "none; original response bytes preserved",
+      "runtime_installed": false,
+      "resolved_in_task": "3A",
+      "contents_available": true,
+      "requires_future_installation_review": true
     }
-  ]
+  ],
+  "task3a": {
+    "checkpoint": "fe8f6392813b0430e0ec5b2caed23a2989a771a8",
+    "status": "PROVENANCE_VERIFIED_RUNTIME_STILL_DISABLED",
+    "registry_evidence": "evidence/registry-manifests.json",
+    "registry_evidence_sha256": "719c7e3fbd147cc44b3c668799b4c213db992f7c00cb6a1e2b676e3779977e05",
+    "index_count": 6,
+    "verified_platform_manifest_count": 12,
+    "runtime_files_unchanged": {
+      "tests/supabase_integration/stack/.dockerignore": "08ed562e84d3f286034f2dc261c6787f613d80a70118e5daefdfaabb5470d221",
+      "tests/supabase_integration/stack/Dockerfile.auth": "b3e8e666f699640b53800bf214dca5fe3eb1f0aab041773a37020801bf3e24c0",
+      "tests/supabase_integration/stack/Dockerfile.db": "49a0f551d7f6ef91017a8d829abfe41c7437916ae3f5bb3917d056f433834027",
+      "tests/supabase_integration/stack/Dockerfile.gateway": "f0a21d5344c625ebd36e788009ca7b32b9c21d6d2fd02f7d5f11a7e112d6763f",
+      "tests/supabase_integration/stack/Dockerfile.mail": "b2e3de3693d32224bd2dbb58dccf5012705e1603abe7b983ae6a20dd2daf9951",
+      "tests/supabase_integration/stack/Dockerfile.realtime": "b638625334d91be2df8a597c1a9520da9f62e398db4fd67dad14fad607fe8e88",
+      "tests/supabase_integration/stack/Dockerfile.rest": "a105679c2992fc8c25a44dd91f003f120473d934b504d90834171e04f1bb0d92",
+      "tests/supabase_integration/stack/common.sh": "2781805d6f0686f6a07ea874802d17979cd03375b86f186bf3da4752a4c84a66",
+      "tests/supabase_integration/stack/gateway.json": "4eafe1e4bdff826c668c0437d6aca2ba1cd2e6e6903805fcd9e04bf122341727",
+      "tests/supabase_integration/stack/gateway.lua": "eb4659c1fc74d1c3c62c28d9dee8a885d5ecb8ca3d0a0d36fe576af31ad94d5b",
+      "tests/supabase_integration/stack/gateway.sh": "8ae5e9b8a59366e6e12d45ef8f8a5fcf408ff7d057dd0c6109124def6c523255",
+      "tests/supabase_integration/stack/postgres-passwords.sh": "91d817942d75d3bec07ec33333322e002449af4bf339805b5c7b52f6f331cf23",
+      "tests/supabase_integration/stack/postgres.sh": "be0005302a1530683062d7361120df70acde1a760d0d61708cbdc24dde280f7f",
+      "tests/supabase_integration/stack/realtime.sh": "f3aafedd0d33d526c016ddb2d9784bc978098bfecc15f295f969b59b3775dddb",
+      "tests/supabase_integration/support/stack.py": "120b296b0a0643f2527a49d6f4d3c4981f040e65d597d25da66e0325c05f470b"
+    },
+    "limitations": [
+      "No registry account credentials or Docker login used. Anonymous read tokens were held in memory only.",
+      "No layer/config/attestation blobs fetched. Unknown-platform attestation descriptors are not treated as runnable architectures.",
+      "Mailpit linux/386 is listed in its index; its child manifest was not independently fetched.",
+      "An unauthenticated Docker Hub web-API probe failed through the environment proxy; registry manifest verification succeeded through the normal proxy."
+    ]
+  }
 }

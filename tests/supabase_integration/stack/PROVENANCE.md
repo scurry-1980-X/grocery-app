@@ -1,19 +1,23 @@
-# Task #2 stack definitions: provenance and deliberate adaptations
+# Task #2 definitions and Task #3A provenance review
 
-**Configuration only; no image has been pulled, built or run.** The checkpoint is
+**Configuration only; no image has been pulled, built or run.** Task #2 started at
 `fdc03783253d0fe2d34255ae061568002fc2d694`. Baseline fixtures and Task #1 guards are
 unchanged. `provenance.json` records their SHA-256 hashes, the image candidates,
-full upstream source commits, exact source URLs and 32 cached-source hashes.
-Those hashes were rechecked locally during this task. No network research was
-performed during implementation. The earlier authorized review compared seven
-core source files at their version tags and full commits; all seven matched.
+full upstream source commits, exact source URLs and the original 32 cached-source
+hashes. Those hashes were rechecked locally during Task #2, which made no network
+requests. Task #3A adds an independently recovered Realtime source and verified
+registry manifest evidence from authorized read-only research; see
+[SOURCE_REVIEW_3A.md](SOURCE_REVIEW_3A.md). The earlier authorized review compared
+seven core source files at their version tags and full commits; all seven matched.
 
 The upstream source cache was read from `/tmp/grocery-upstream-source-review`.
-It is not a repository dependency and is not vendored here. Source hashes identify
-review evidence; they are not OCI manifest, platform or image digests. All six OCI
-digests are explicitly `null` / `UNRESOLVED`. Do not replace them with invented
-hashes or assume a tag is immutable. The document targets `linux/amd64`; native
-ARM64 support, image manifests and any emulation require separate review.
+The earlier cache is not a repository dependency and is not vendored here. Task
+#3A preserves the recovered SQL and registry response bodies under `evidence/`.
+Source hashes are distinct from OCI digests. All six index digests and twelve
+Linux amd64/arm64 manifest digests are now verified in provenance metadata. The
+Task #2 generator still deliberately emits `UNRESOLVED` build arguments and rejects
+runtime execution. It targets `linux/amd64`; native ARM64 runtime support and any
+emulation remain unverified. Tags must not be assumed immutable.
 
 ## Version/source inventory
 
@@ -95,18 +99,21 @@ a future executor must generate and protect them. The definition contains SQL;
 incompletely bootstrapped data directory. A failed/uncertain initialization needs
 a new owned run, not repair of an unverified database.
 
-**New evidence limitation:** the cached official Compose file mounts
-`volumes/db/realtime.sql`, but that file's body was not captured by the earlier
-review. The native Realtime configuration explicitly uses `_realtime` as its
-search path, but that does not establish the missing file's complete contents.
-**No replacement schema statement or bootstrap implementation is supplied.**
-The exact missing source is
-[`docker/volumes/db/realtime.sql` at the pinned Supabase commit](https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql).
-Its contents and hash are unresolved; this link identifies required evidence,
-not a source fetched or reviewed in this task. Obtain and review it in a separately
-authorized source-review step, then verify native bootstrap parity before runtime
-approval. The present stack is deliberately incomplete at this prerequisite.
-It is separate from the historically recovered Grocery fixtures.
+**Task #3A closes the source gap, not the installation gap.** The exact
+[`docker/volumes/db/realtime.sql` at the pinned Supabase commit](https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql)
+is now preserved unchanged in `evidence/realtime.sql`, SHA-256
+`7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88`.
+It reads `POSTGRES_USER` through a psql shell metacommand, creates `_realtime` if
+absent, and explicitly sets the schema owner even if the schema already exists.
+This is compatible with the generated fixed `POSTGRES_USER=supabase_admin` and
+Realtime search path. It defines no tables, grants or publication membership.
+It requires psql preprocessing; it is not plain SQL for a generic migration API.
+
+No Dockerfile, startup adapter or build-context allowlist was changed to install
+it. A later reviewed configuration task must preserve its exact bytes and native
+`migrations/99-realtime.sql` installation point, verify bootstrap ordering and keep
+the PostgreSQL identity fixed. The runtime definition remains incomplete until
+that work is done. This source is separate from the historical Grocery fixtures.
 The bundled platform may create unused platform schemas/roles; preserving its
 native dependency chain does not add Storage, Studio or other excluded services.
 
@@ -189,16 +196,18 @@ behavioral confirmation and egress-denial probes.
 
 All Compose entrypoints point to the intentionally absent
 `/harness/TASK_2_RUNTIME_DISABLED`, and base-image healthchecks are disabled.
-Digest build arguments are invalid `UNRESOLVED` values, local derived images have
+Digest build arguments remain invalid `UNRESOLVED` values despite the newly
+verified provenance metadata; local derived images have
 `pull_policy: never`, and credential slots are non-secret invalid placeholders.
 `require_runtime_ready` always rejects. There is no runtime-enable input. These
 are accidental-use barriers, not permission to invoke Compose: a manually invoked
 Compose command could still create resources before failing. No such command is
 provided or executed.
 
-A future reviewed task must supply image/platform digest verification, native
-bootstrap parity, protected local key generation/persistence, dependency readiness,
-image effective-config inspection, daemon binding, fresh-volume ownership and
+A future reviewed task must integrate the verified image/platform digests and
+recovered bootstrap source, establish native bootstrap parity, and provide
+protected local key generation/persistence, dependency readiness, image
+effective-config inspection, daemon binding, fresh-volume ownership and
 network/egress checks, lifecycle journaling and exact-inventory teardown. It must
 also resolve the browser namespace placement without weakening the fixed origin
 or adding host ports/shared-network overrides. Image adaptation/build/start is

@@ -231,19 +231,18 @@ class DefinitionTests(unittest.TestCase):
         self.assertNotRegex(sql, r'(?im)^\s*(?:GRANT|REVOKE|CREATE ROLE|CREATE SCHEMA|CREATE TABLE|CREATE FUNCTION)\b')
         self.assertNotIn('grocery_', sql)
 
-    def test_missing_realtime_source_remains_a_gap_not_a_guessed_implementation(self):
+    def test_recovered_realtime_source_is_evidence_only_not_runtime_installation(self):
         for path in stack.STACK.glob('*.sh'):
             self.assertNotRegex(path.read_text(), r'(?i)CREATE\s+SCHEMA\b')
         self.assertFalse((stack.STACK/'realtime.sql').exists())
         provenance = json.loads((stack.STACK/'provenance.json').read_text())
-        self.assertFalse(any(r['url'].endswith('/volumes/db/realtime.sql') for r in provenance['sources']))
-        self.assertTrue(any('contents/hash are unresolved' in limit for limit in provenance['limits']))
-        gap, = provenance['unresolved_sources']
-        self.assertTrue(gap['url'].endswith('/docker/volumes/db/realtime.sql'))
-        self.assertIsNone(gap['sha256'])
-        self.assertIs(gap['contents_available'], False)
-        self.assertIs(gap['replacement_supplied'], False)
-        self.assertIs(gap['blocks_runtime'], True)
+        self.assertEqual(provenance['unresolved_sources'], [])
+        recovered, = provenance['resolved_sources']
+        self.assertTrue(recovered['url'].endswith('/docker/volumes/db/realtime.sql'))
+        self.assertEqual(recovered['sha256'], '7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88')
+        self.assertIs(recovered['contents_available'], True)
+        self.assertIs(recovered['runtime_installed'], False)
+        self.assertIs(recovered['requires_future_installation_review'], True)
         plan = stack.create_plan({})
         self.assertIn('native platform bootstrap parity and Realtime prerequisite review pending', plan['blockers'])
         with self.assertRaises(safety.SafetyError):
@@ -304,9 +303,12 @@ class DefinitionTests(unittest.TestCase):
         self.assertEqual(provenance['checkpoint'], 'fdc03783253d0fe2d34255ae061568002fc2d694')
         for name, record in provenance['images'].items():
             self.assertEqual(record['reference'], stack.IMAGES[name])
-            self.assertIsNone(record['digest'])
+            self.assertRegex(record['digest'], r'^sha256:[0-9a-f]{64}$')
+            self.assertEqual(record['digest_kind'], 'oci_image_index')
+            self.assertEqual(record['selected_platform_digest'], record['platform_manifests']['linux/amd64']['digest'])
+            self.assertIs(record['source_commit_to_published_image_binding_verified'], False)
             self.assertRegex(record['source_commit'], r'^[0-9a-f]{40}$')
-        self.assertEqual(len(provenance['sources']), 32)
+        self.assertEqual(len(provenance['sources']), 33)
         for record in provenance['sources']:
             self.assertRegex(record['sha256'], r'^[0-9a-f]{64}$')
             self.assertRegex(record['url'], r'^https://(?:raw.githubusercontent.com|github.com)/')

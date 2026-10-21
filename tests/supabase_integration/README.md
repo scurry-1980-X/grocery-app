@@ -1,4 +1,4 @@
-# Disposable Supabase integration harness — Tasks #1 and #2
+# Disposable Supabase integration harness — Tasks #1, #2 and #3A
 
 **Offline configuration only. No service startup, database connections, SQL
 execution, cleanup implementation or deployment. Migration 003 remains NO-GO for
@@ -110,21 +110,26 @@ supplied environment. Tests are the supported way to exercise this API in Task #
 The existing CLI still accepts only `preflight` and `--help`.
 
 Runtime stays blocked: all Compose entrypoints point to an absent blocker path,
-healthchecks are disabled, derived images cannot be pulled, image digests are
-unresolved, and `require_runtime_ready` always rejects. No runtime-enable flag or
-secret-generation path exists. See [the complete design and limitations](stack/PROVENANCE.md)
+healthchecks are disabled, derived images cannot be pulled, build digest arguments
+remain unresolved placeholders, and `require_runtime_ready` always rejects.
+No runtime-enable flag or secret-generation path exists. See
+[the complete design and limitations](stack/PROVENANCE.md)
 for all adaptations, native bootstrap prerequisites and source evidence.
 
-**Unresolved Realtime provenance:** the pinned official Compose file references
-`docker/volumes/db/realtime.sql`, whose body was not captured by the source review.
-This task supplies no guessed replacement. Recover and review that exact upstream
-file before implementing its bootstrap dependency or approving runtime execution.
+**Task #3A provenance recovered:** the exact pinned upstream
+`docker/volumes/db/realtime.sql`, all six OCI indexes, and all twelve Linux
+amd64/arm64 manifest identities are verified. Raw evidence and the distinction
+between index, platform, config and source hashes are documented in
+[the source review](stack/SOURCE_REVIEW_3A.md). The recovered SQL is evidence only;
+it is excluded from the build context and has not been installed or executed.
+The stack generator and all runtime blockers remain unchanged.
 
-A later authorized task must resolve image digests/platform identity and native
-bootstrap parity, build and verify adapted images, generate and protect local
-credentials, implement readiness and a protected ownership journal, inspect the
-real daemon/resources, and provide isolated creation/teardown. The guards remain
-unchanged; runtime compatibility is still **unproven**.
+A later authorized configuration task must integrate these verified pins and the
+exact native bootstrap source. A controlled build/runtime phase also needs native
+bootstrap parity, image effective-config and filesystem verification, protected
+local credentials, readiness and ownership journaling, daemon/resource inspection,
+isolation probes, and exact-inventory teardown. Runtime compatibility remains
+**unproven**; resolving source and digest provenance alone does not authorize it.
 
 The future executor must validate the full effective configuration, not silently
 filter dangerous settings into a safe-looking projection. It must start from a
