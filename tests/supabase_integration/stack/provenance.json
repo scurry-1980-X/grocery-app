@@ -402,7 +402,9 @@
       "github_page_commit_and_lines_match": true,
       "git_blob_sha1_derived": "4d4b9ffb912b9312dd78257956c180f12913264d",
       "transformation": "none; original response bytes preserved",
-      "runtime_installed": false
+      "runtime_installed": false,
+      "build_integration_defined": true,
+      "build_destination": "/docker-entrypoint-initdb.d/migrations/99-realtime.sql"
     }
   ],
   "unchanged_files": {
@@ -422,7 +424,7 @@
     "No network fetches, image pulls, builds, containers or SQL execution in Task #2.",
     "The earlier source cache is not vendored. Task #3A vendors the exact recovered Realtime SQL and raw registry manifest bodies as evidence only.",
     "Task #3A verifies publisher registry manifest identities, not signatures, binary architectures, source-to-image attestations or runtime compatibility.",
-    "All Task #2 runtime/build blockers and placeholder build arguments remain unchanged; verified metadata is not automatically wired into the generator."
+    "Task #3B integrates exact verified Linux amd64 image pins and the unmodified Realtime bootstrap file into disabled definitions; no image has been built and all execution gates remain closed."
   ],
   "unresolved_sources": [],
   "resolved_sources": [
@@ -441,7 +443,9 @@
       "runtime_installed": false,
       "resolved_in_task": "3A",
       "contents_available": true,
-      "requires_future_installation_review": true
+      "build_integration_defined": true,
+      "build_destination": "/docker-entrypoint-initdb.d/migrations/99-realtime.sql",
+      "requires_build_and_bootstrap_validation": true
     }
   ],
   "task3a": {
@@ -473,6 +477,47 @@
       "No layer/config/attestation blobs fetched. Unknown-platform attestation descriptors are not treated as runnable architectures.",
       "Mailpit linux/386 is listed in its index; its child manifest was not independently fetched.",
       "An unauthenticated Docker Hub web-API probe failed through the environment proxy; registry manifest verification succeeded through the normal proxy."
+    ]
+  },
+  "task3b": {
+    "checkpoint": "9d6355073a3515567037a462fb6c33d3a1191826",
+    "status": "VERIFIED_INPUTS_INTEGRATED_RUNTIME_DISABLED",
+    "selected_platform": "linux/amd64",
+    "base_image_binding": "Literal repository:tag@verified-amd64-manifest-digest in each Dockerfile; no build arguments accepted.",
+    "realtime_source": "evidence/realtime.sql",
+    "realtime_sha256": "7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88",
+    "realtime_build_destination": "/docker-entrypoint-initdb.d/migrations/99-realtime.sql",
+    "transformations": [],
+    "built": false,
+    "runtime_enabled": false,
+    "definition_files_integrated": [
+      "tests/supabase_integration/stack/.dockerignore",
+      "tests/supabase_integration/stack/Dockerfile.db",
+      "tests/supabase_integration/stack/Dockerfile.auth",
+      "tests/supabase_integration/stack/Dockerfile.rest",
+      "tests/supabase_integration/stack/Dockerfile.realtime",
+      "tests/supabase_integration/stack/Dockerfile.gateway",
+      "tests/supabase_integration/stack/Dockerfile.mail",
+      "tests/supabase_integration/support/stack.py"
+    ],
+    "unchanged_files": {
+      "tests/supabase_integration/stack/common.sh": "2781805d6f0686f6a07ea874802d17979cd03375b86f186bf3da4752a4c84a66",
+      "tests/supabase_integration/stack/gateway.json": "4eafe1e4bdff826c668c0437d6aca2ba1cd2e6e6903805fcd9e04bf122341727",
+      "tests/supabase_integration/stack/gateway.lua": "eb4659c1fc74d1c3c62c28d9dee8a885d5ecb8ca3d0a0d36fe576af31ad94d5b",
+      "tests/supabase_integration/stack/gateway.sh": "8ae5e9b8a59366e6e12d45ef8f8a5fcf408ff7d057dd0c6109124def6c523255",
+      "tests/supabase_integration/stack/postgres-passwords.sh": "91d817942d75d3bec07ec33333322e002449af4bf339805b5c7b52f6f331cf23",
+      "tests/supabase_integration/stack/postgres.sh": "be0005302a1530683062d7361120df70acde1a760d0d61708cbdc24dde280f7f",
+      "tests/supabase_integration/stack/realtime.sh": "f3aafedd0d33d526c016ddb2d9784bc978098bfecc15f295f969b59b3775dddb",
+      "tests/supabase_integration/stack/evidence/realtime.sql": "7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88",
+      "tests/supabase_integration/stack/evidence/.gitattributes": "383f6220424556c9c72a5bdfb41a307cd162c1534b483cbaa74476597124bfa1",
+      "tests/supabase_integration/stack/evidence/registry-manifests.json": "719c7e3fbd147cc44b3c668799b4c213db992f7c00cb6a1e2b676e3779977e05",
+      "tests/supabase_integration/stack/SOURCE_REVIEW_3A.md": "6ee4a628873b7609d93d25d0acc061103fe190dc63d8d494f5a1a66089d59819"
+    },
+    "remaining_build_gates": [
+      "Review and authorize a build-only executor and exact context snapshot.",
+      "Inspect verified base-image configs/ONBUILD/effective defaults before running any build steps.",
+      "Verify local builder/daemon identity, supported architecture, build isolation and ownership of output/cache resources.",
+      "No service starts, database bootstrap or SQL execution in the build-only phase."
     ]
   }
 }

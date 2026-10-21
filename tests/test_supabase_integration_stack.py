@@ -167,7 +167,7 @@ class StackTests(unittest.TestCase):
             self.assertEqual(service['entrypoint'], ['/harness/TASK_2_RUNTIME_DISABLED'])
             self.assertEqual(service['healthcheck'], {'disable': True})
             self.assertEqual(service['pull_policy'], 'never')
-            self.assertEqual(service['build']['args'], {'BASE_DIGEST': 'UNRESOLVED'})
+            self.assertEqual(service['build']['args'], {})
         self.assertFalse((stack.STACK/'TASK_2_RUNTIME_DISABLED').exists())
 
     def test_only_literal_internal_network_with_no_host_ports(self):
@@ -186,12 +186,128 @@ class StackTests(unittest.TestCase):
         self.assertNotIn('subprocess', (SUPPORT/'stack.py').read_text())
 
 
+class BuildInputTests(unittest.TestCase):
+    def setUp(self):
+        self.plan = stack.create_plan({})
+        self.provenance = json.loads((stack.STACK/'provenance.json').read_text())
+
+    def test_pins_match_preserved_evidence_and_are_bound_to_generated_plan(self):
+        stack.verify_build_inputs()
+        self.assertEqual(set(stack.PINNED_DIGESTS), set(stack.IMAGES))
+        for name, image in self.plan['images'].items():
+            expected = self.provenance['images'][name]['platform_manifests']['linux/amd64']['digest']
+            self.assertEqual(image, {'base': stack.IMAGES[name], 'digest': expected, 'platform': 'linux/amd64'})
+            self.assertEqual(self.plan['compose']['services'][name]['platform'], 'linux/amd64')
+            self.assertEqual(self.plan['compose']['services'][name]['build']['args'], {})
+        self.assertEqual(self.plan['artifacts'][stack.REALTIME_SOURCE], stack.REALTIME_SHA256)
+        self.assertEqual(self.plan['artifacts'][stack.REGISTRY_EVIDENCE], stack.REGISTRY_SHA256)
+
+    def test_index_config_arm64_or_caller_override_cannot_replace_selected_pin(self):
+        meta = self.provenance['images']['db']
+        candidates = [meta['digest'], meta['platform_manifests']['linux/arm64']['digest'],
+                      meta['platform_manifests']['linux/amd64']['config_digest'], 'latest', None]
+        for candidate in candidates:
+            changed = deepcopy(self.plan)
+            changed['images']['db']['digest'] = candidate
+            with self.subTest(candidate=candidate), self.assertRaises(safety.SafetyError):
+                stack.validate_plan(changed)
+        for field, value in (('platform','linux/arm64'), ('build', {
+                **self.plan['compose']['services']['db']['build'],
+                'args': {'BASE_DIGEST':stack.PINNED_DIGESTS['db']}})):
+            changed = deepcopy(self.plan)
+            changed['compose']['services']['db'][field] = value
+            with self.assertRaises(safety.SafetyError): stack.validate_plan(changed)
+
+    def reject_bytes(self, filename, replacement):
+        original = Path.read_bytes
+        target = stack.STACK / filename
+        def read(path):
+            if path == target:
+                if isinstance(replacement, Exception): raise replacement
+                return replacement
+            return original(path)
+        with patch.object(Path, 'read_bytes', read), \
+             patch.object(socket, 'socket', side_effect=AssertionError('network')), \
+             patch.object(subprocess, 'Popen', side_effect=AssertionError('process')):
+            with self.assertRaisesRegex(safety.SafetyError, '^Build input verification failed;'):
+                stack.create_plan({})
+
+    def test_source_missing_changed_or_line_endings_normalized_fails_closed(self):
+        raw = (stack.STACK/stack.REALTIME_SOURCE).read_bytes()
+        for altered in (FileNotFoundError('private-path'), b'', raw+b'\n',
+                        raw.replace(b'\n', b'\r\n'), raw.replace(b':pguser',b'postgres')):
+            with self.subTest(kind=type(altered).__name__):
+                self.reject_bytes(stack.REALTIME_SOURCE, altered)
+
+    def test_registry_missing_or_modified_fails_closed(self):
+        raw = (stack.STACK/stack.REGISTRY_EVIDENCE).read_bytes()
+        for altered in (FileNotFoundError('private-path'), b'{}', raw+b'\n'):
+            self.reject_bytes(stack.REGISTRY_EVIDENCE, altered)
+
+    def test_provenance_missing_malformed_or_changed_fails_closed(self):
+        for altered in (FileNotFoundError('private-path'), b'not-json', b'[]', b'null'):
+            self.reject_bytes('provenance.json', altered)
+        for field in ('reference','platform','selected_platform_digest'):
+            changed = deepcopy(self.provenance)
+            changed['images']['db'][field] = 'foreign'
+            self.reject_bytes('provenance.json', json.dumps(changed).encode())
+        changed = deepcopy(self.provenance)
+        changed['resolved_sources'][0]['sha256'] = '0'*64
+        self.reject_bytes('provenance.json', json.dumps(changed).encode())
+
+    def test_symlinked_evidence_rejected(self):
+        original = Path.is_symlink
+        for target in (stack.STACK/stack.REALTIME_SOURCE, stack.STACK/'evidence'):
+            def is_symlink(path): return path == target or original(path)
+            with patch.object(Path, 'is_symlink', is_symlink), self.assertRaises(safety.SafetyError):
+                stack.create_plan({})
+
+    def test_dockerfile_tag_fallback_and_bootstrap_drift_rejected_before_plan(self):
+        original = Path.read_text
+        target = stack.STACK/'Dockerfile.db'
+        text = target.read_text()
+        changes = [text.replace('@'+stack.PINNED_DIGESTS['db'], ''),
+                   text.replace(stack.PINNED_DIGESTS['db'], self.provenance['images']['db']['digest']),
+                   'ARG BASE_DIGEST\n'+text,
+                   text.replace(stack.REALTIME_DESTINATION, '/docker-entrypoint-initdb.d/99-realtime.sql'),
+                   text.replace(stack.REALTIME_SHA256, '0'*64)]
+        for replacement in changes:
+            def read(path, *args, **kwargs):
+                return replacement if path == target else original(path, *args, **kwargs)
+            with patch.object(Path, 'read_text', read), self.assertRaises(safety.SafetyError):
+                stack.create_plan({})
+
+    def test_build_context_widening_rejected(self):
+        original = Path.read_text
+        target = stack.STACK/'.dockerignore'
+        replacement = target.read_text()+'!evidence/registry-manifests.json\n'
+        def read(path, *args, **kwargs):
+            return replacement if path == target else original(path, *args, **kwargs)
+        with patch.object(Path, 'read_text', read), self.assertRaises(safety.SafetyError):
+            stack.create_plan({})
+
+    def test_exact_copy_and_hash_check_preserve_native_processing_order(self):
+        text = (stack.STACK/'Dockerfile.db').read_text()
+        copy = 'COPY '+stack.REALTIME_SOURCE+' '+stack.REALTIME_DESTINATION
+        self.assertEqual(text.count(copy), 1)
+        self.assertLess(text.index('RUN test ! -e '+stack.REALTIME_DESTINATION), text.index(copy))
+        self.assertLess(text.index(copy), text.index('sha256sum -c -'))
+        self.assertLess(text.index('sha256sum -c -'), text.index('COPY postgres-passwords.sh'))
+        self.assertNotRegex(text, r'(?im)(?:^RUN|&&|[;|])\s+(?:/[\w/-]+/)?(?:psql|migrate|initdb)(?:\s|$)')
+        self.assertIn('exec /usr/local/bin/docker-entrypoint.sh postgres',
+                      (stack.STACK/'postgres.sh').read_text())
+        self.assertNotIn('realtime.sql', (stack.STACK/'postgres.sh').read_text())
+        self.assertNotIn('realtime.sql', (stack.STACK/'postgres-passwords.sh').read_text())
+        self.assertEqual(self.plan['compose']['services']['db']['environment']['POSTGRES_USER'],
+                         'supabase_admin')
+
+
 class DefinitionTests(unittest.TestCase):
     def test_exact_digest_required_base_images_and_numeric_final_users(self):
         for name, image in stack.IMAGES.items():
             text = (stack.STACK/f'Dockerfile.{name}').read_text()
-            self.assertEqual(re.findall(r'^FROM (.+)$', text, re.M), [image+'@${BASE_DIGEST}'])
-            self.assertIn('ARG BASE_DIGEST\n', text)
+            self.assertEqual(re.findall(r'^FROM (.+)$', text, re.M), [image+'@'+stack.PINNED_DIGESTS[name]])
+            self.assertNotRegex(text, r'(?m)^ARG ')
             self.assertEqual(re.findall(r'^USER (.+)$', text, re.M)[-1], stack.USERS[name])
             self.assertIn('HEALTHCHECK NONE', text)
             self.assertNotRegex(text, r'(?im)^(?:ADD|VOLUME|EXPOSE)\b')
@@ -204,9 +320,11 @@ class DefinitionTests(unittest.TestCase):
     def test_build_context_cannot_copy_fixtures_secrets_or_host_repository(self):
         ignore = (stack.STACK/'.dockerignore').read_text().splitlines()
         self.assertEqual(ignore[0], '**')
-        allowed = {line[1:] for line in ignore[1:]}
+        self.assertEqual(tuple(ignore), stack.CONTEXT_RULES)
+        allowed = {line[1:] for line in ignore if line.startswith('!')}
         self.assertEqual(allowed, {'Dockerfile.*','common.sh','postgres.sh','postgres-passwords.sh',
-                                   'realtime.sh','gateway.sh','gateway.json','gateway.lua'})
+                                   'realtime.sh','gateway.sh','gateway.json','gateway.lua',
+                                   'evidence/','evidence/realtime.sql'})
         for dockerfile in stack.STACK.glob('Dockerfile.*'):
             for line in dockerfile.read_text().splitlines():
                 if line.startswith('COPY '):
@@ -231,7 +349,7 @@ class DefinitionTests(unittest.TestCase):
         self.assertNotRegex(sql, r'(?im)^\s*(?:GRANT|REVOKE|CREATE ROLE|CREATE SCHEMA|CREATE TABLE|CREATE FUNCTION)\b')
         self.assertNotIn('grocery_', sql)
 
-    def test_recovered_realtime_source_is_evidence_only_not_runtime_installation(self):
+    def test_recovered_realtime_source_is_integrated_but_not_executed(self):
         for path in stack.STACK.glob('*.sh'):
             self.assertNotRegex(path.read_text(), r'(?i)CREATE\s+SCHEMA\b')
         self.assertFalse((stack.STACK/'realtime.sql').exists())
@@ -242,9 +360,10 @@ class DefinitionTests(unittest.TestCase):
         self.assertEqual(recovered['sha256'], '7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88')
         self.assertIs(recovered['contents_available'], True)
         self.assertIs(recovered['runtime_installed'], False)
-        self.assertIs(recovered['requires_future_installation_review'], True)
+        self.assertIs(recovered['build_integration_defined'], True)
+        self.assertIs(recovered['requires_build_and_bootstrap_validation'], True)
         plan = stack.create_plan({})
-        self.assertIn('native platform bootstrap parity and Realtime prerequisite review pending', plan['blockers'])
+        self.assertIn('native platform bootstrap parity unverified', plan['blockers'])
         with self.assertRaises(safety.SafetyError):
             stack.require_runtime_ready(plan)
 

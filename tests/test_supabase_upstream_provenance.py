@@ -119,19 +119,23 @@ class UpstreamProvenanceTests(unittest.TestCase):
 
     def test_runtime_files_and_safety_baselines_remain_byte_identical(self):
         expected = {**self.provenance['unchanged_files'],
-                    **self.provenance['task3a']['runtime_files_unchanged']}
-        self.assertIn('tests/supabase_integration/support/stack.py', expected)
-        self.assertIn('tests/supabase_integration/stack/Dockerfile.db', expected)
+                    **self.provenance['task3b']['unchanged_files']}
+        self.assertIn('tests/supabase_integration/stack/postgres.sh', expected)
+        self.assertIn('tests/supabase_integration/stack/evidence/realtime.sql', expected)
         for name, digest in expected.items():
             with self.subTest(path=name):
                 self.assertEqual(hashlib.sha256((ROOT/name).read_bytes()).hexdigest(), digest)
         self.assertEqual(self.provenance['status'], 'CONFIGURATION_ONLY_RUNTIME_DISABLED')
-        # Evidence must not be whitelisted for COPY or native initialization.
+        # Only the exact SQL source, not registry metadata, enters the context.
         ignore = (STACK/'.dockerignore').read_text().splitlines()
         self.assertEqual(ignore[0], '**')
-        self.assertFalse(any('evidence' in line or 'realtime.sql' in line for line in ignore[1:]))
+        self.assertEqual(ignore[-3:], ['!evidence/', 'evidence/**', '!evidence/realtime.sql'])
+        self.assertNotIn('!evidence/registry-manifests.json', ignore)
+        self.assertIn('COPY evidence/realtime.sql /docker-entrypoint-initdb.d/migrations/99-realtime.sql',
+                      (STACK/'Dockerfile.db').read_text())
         for path in STACK.glob('Dockerfile.*'):
-            self.assertNotIn('realtime.sql', path.read_text())
+            if path.name != 'Dockerfile.db':
+                self.assertNotIn('realtime.sql', path.read_text())
 
     def test_mutated_raw_body_cannot_keep_recorded_digest(self):
         for key in ('index', 'child'):

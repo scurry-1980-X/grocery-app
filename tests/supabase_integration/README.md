@@ -1,4 +1,4 @@
-# Disposable Supabase integration harness — Tasks #1, #2 and #3A
+# Disposable Supabase integration harness — Tasks #1, #2, #3A and #3B
 
 **Offline configuration only. No service startup, database connections, SQL
 execution, cleanup implementation or deployment. Migration 003 remains NO-GO for
@@ -19,8 +19,10 @@ production.** Task #2 builds on `codex/isolated-restore-verification` at
 
 - `support/stack.py`: in-memory generation and whole-document validation of a
   six-service Compose definition, followed by the unchanged Task #1 policy checks.
-  No caller-supplied URLs, credentials, image names or overrides are accepted.
-- `stack/`: six digest-required derived-image definitions, startup/path adapters,
+  Task #3B verifies the preserved registry evidence, literal amd64 Dockerfile pins,
+  exact Realtime source bytes and build-context allowlist before producing a plan.
+  No caller-supplied URLs, credentials, image names, digests or overrides are accepted.
+- `stack/`: six digest-pinned derived-image definitions, startup/path adapters,
   gateway configuration, and [provenance/deviations](stack/PROVENANCE.md).
 - `tests/test_supabase_integration_stack.py`: offline definition and mutation tests.
 - `tests/test_supabase_gateway.py`: the actual gateway Lua filter exercised with
@@ -110,8 +112,8 @@ supplied environment. Tests are the supported way to exercise this API in Task #
 The existing CLI still accepts only `preflight` and `--help`.
 
 Runtime stays blocked: all Compose entrypoints point to an absent blocker path,
-healthchecks are disabled, derived images cannot be pulled, build digest arguments
-remain unresolved placeholders, and `require_runtime_ready` always rejects.
+healthchecks are disabled, derived images cannot be pulled, credential slots
+remain invalid placeholders, and `require_runtime_ready` always rejects.
 No runtime-enable flag or secret-generation path exists. See
 [the complete design and limitations](stack/PROVENANCE.md)
 for all adaptations, native bootstrap prerequisites and source evidence.
@@ -120,16 +122,34 @@ for all adaptations, native bootstrap prerequisites and source evidence.
 `docker/volumes/db/realtime.sql`, all six OCI indexes, and all twelve Linux
 amd64/arm64 manifest identities are verified. Raw evidence and the distinction
 between index, platform, config and source hashes are documented in
-[the source review](stack/SOURCE_REVIEW_3A.md). The recovered SQL is evidence only;
-it is excluded from the build context and has not been installed or executed.
-The stack generator and all runtime blockers remain unchanged.
+[the source review](stack/SOURCE_REVIEW_3A.md). The recovered SQL remains the exact
+reviewed source;
+Task #3B now copies it unchanged in the PostgreSQL build definition, but no image
+has been built and the SQL has not been executed. All runtime execution blockers
+remain in force.
 
-A later authorized configuration task must integrate these verified pins and the
-exact native bootstrap source. A controlled build/runtime phase also needs native
-bootstrap parity, image effective-config and filesystem verification, protected
-local credentials, readiness and ownership journaling, daemon/resource inspection,
-isolation probes, and exact-inventory teardown. Runtime compatibility remains
-**unproven**; resolving source and digest provenance alone does not authorize it.
+**Task #3B integration:** all Dockerfiles use literal verified `linux/amd64`
+child-manifest pins, with no build arguments. The shared build context includes
+the exact SQL; only the PostgreSQL Dockerfile copies it to native
+`migrations/99-realtime.sql`, with a
+future build-time destination-collision check and SHA-256 verification. Its psql
+processing stays with the native bootstrap chain; no shell adapter executes it
+separately. The generator hashes the nested evidence inputs as well as checking
+those identities. Task #1 safety contracts are unchanged.
+
+A separately authorized **build-only** task is the next gate. Before building,
+it must inspect base-image configs/ONBUILD/defaults, validate the local builder,
+architecture and exact context snapshot, and define owned output/cache inventory.
+It must retain offline RUN steps and prohibit service startup, database bootstrap,
+SQL execution and global cleanup. There is no executor or build authorization in
+this harness. A build is not a harmless metadata read: it executes Dockerfile RUN
+steps and may create temporary builder containers.
+
+GO to commit the disabled Task #3B definitions. Conditional GO to a separately
+reviewed build-only task that completes those preflight gates and stops on any
+incompatibility. Runtime is still NO-GO: native bootstrap parity, protected local
+credentials, readiness, ownership journaling, isolation probes and exact-inventory
+teardown remain unimplemented or unverified.
 
 The future executor must validate the full effective configuration, not silently
 filter dangerous settings into a safe-looking projection. It must start from a

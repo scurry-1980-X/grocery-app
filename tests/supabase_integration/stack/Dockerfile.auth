@@ -1,5 +1,4 @@
-ARG BASE_DIGEST
-FROM supabase/gotrue:v2.197.0@${BASE_DIGEST}
+FROM supabase/gotrue:v2.197.0@sha256:839f529492d116b4e8b7777c953a27c381d34c15a744b1bcefde5eefaa1f9f9f
 USER 1000:1000
 HEALTHCHECK NONE
 ENTRYPOINT ["/usr/local/bin/auth"]

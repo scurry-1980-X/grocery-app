@@ -7,3 +7,6 @@
 !gateway.sh
 !gateway.json
 !gateway.lua
+!evidence/
+evidence/**
+!evidence/realtime.sql

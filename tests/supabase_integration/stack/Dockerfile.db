@@ -1,6 +1,4 @@
-# Definition only. BASE_DIGEST is deliberately unresolved in the offline plan.
-ARG BASE_DIGEST
-FROM supabase/postgres:17.6.1.136@${BASE_DIGEST}
+FROM supabase/postgres:17.6.1.136@sha256:5a4314708484bec672de2c09653a5c01fb1c84a998564ac231b0325e2238ed5b
 USER 0:0
 # Image-build ownership preparation; never a root runtime/init container.
 RUN groupmod -g 10001 postgres && usermod -u 10001 -g 10001 postgres \
@@ -13,6 +11,12 @@ RUN groupmod -g 10001 postgres && usermod -u 10001 -g 10001 postgres \
     && ln -s /var/lib/grocery-harness/socket /var/run/postgresql \
     && test ! -e /etc/postgresql-custom/pgsodium_root.key \
     && ln -s /var/lib/grocery-harness/keys/pgsodium_root.key /etc/postgresql-custom/pgsodium_root.key
+# Exact upstream psql input, processed only by the native migration sequence.
+# Fail a future build on a pre-existing destination or changed source bytes.
+RUN test ! -e /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+COPY evidence/realtime.sql /docker-entrypoint-initdb.d/migrations/99-realtime.sql
+RUN printf '%s  %s\n' '7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88' \
+    /docker-entrypoint-initdb.d/migrations/99-realtime.sql | sha256sum -c -
 COPY common.sh postgres.sh /harness/
 COPY postgres-passwords.sh /docker-entrypoint-initdb.d/zz-harness-passwords.sh
 # Keep this sourced init script non-executable; native entrypoint exports helpers.

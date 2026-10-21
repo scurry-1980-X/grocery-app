@@ -1,5 +1,4 @@
-ARG BASE_DIGEST
-FROM supabase/realtime:v2.143.3@${BASE_DIGEST}
+FROM supabase/realtime:v2.143.3@sha256:1591e9049bf15fd392da9e8344db892f6acfe9da274517327dbd14733f32b9e1
 USER 0:0
 RUN groupadd -g 10001 grocery && useradd -u 10001 -g 10001 -M grocery \
     && mkdir -p /var/lib/grocery-harness/home /var/lib/grocery-harness/tmp \

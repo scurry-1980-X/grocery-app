@@ -1,4 +1,4 @@
-# Task #2 definitions and Task #3A provenance review
+# Disabled stack definitions: Tasks #2, #3A and #3B
 
 **Configuration only; no image has been pulled, built or run.** Task #2 started at
 `fdc03783253d0fe2d34255ae061568002fc2d694`. Baseline fixtures and Task #1 guards are
@@ -14,9 +14,10 @@ The upstream source cache was read from `/tmp/grocery-upstream-source-review`.
 The earlier cache is not a repository dependency and is not vendored here. Task
 #3A preserves the recovered SQL and registry response bodies under `evidence/`.
 Source hashes are distinct from OCI digests. All six index digests and twelve
-Linux amd64/arm64 manifest digests are now verified in provenance metadata. The
-Task #2 generator still deliberately emits `UNRESOLVED` build arguments and rejects
-runtime execution. It targets `linux/amd64`; native ARM64 runtime support and any
+Linux amd64/arm64 manifest digests are now verified in provenance metadata. Task
+#3B integrates the verified amd64 child digests as literal
+Dockerfile FROM references and accepts no build arguments. Runtime execution is
+still rejected. It targets `linux/amd64`; native ARM64 runtime support and any
 emulation remain unverified. Tags must not be assumed immutable.
 
 ## Version/source inventory
@@ -60,7 +61,10 @@ and non-root. Auth and PostgREST need only explicit entrypoints and UID:GID. No
 runtime root init container, ownership repair, capability, bind mount, tmpfs or
 Docker socket is added. Build definitions use no package installation, downloads
 or network-dependent RUN commands; generated build networking is `none`.
-Resolving base images in a later build still requires separate authorization.
+Pulling base images and executing build steps still require separate authorization.
+Task #3B changes only FROM identities, the PostgreSQL source-copy/hash checks, the
+context allowlist and offline validation. Existing runtime users and settings stay
+unchanged.
 
 Docker's [volume documentation](https://github.com/docker/docs/blob/main/content/manuals/engine/storage/volumes.md)
 describes population of an empty volume from the image directory. The definitions
@@ -99,21 +103,31 @@ a future executor must generate and protect them. The definition contains SQL;
 incompletely bootstrapped data directory. A failed/uncertain initialization needs
 a new owned run, not repair of an unverified database.
 
-**Task #3A closes the source gap, not the installation gap.** The exact
+**Task #3A recovered the source; Task #3B integrates its exact bytes.** The exact
 [`docker/volumes/db/realtime.sql` at the pinned Supabase commit](https://github.com/supabase/supabase/blob/e854b84ed4517b0f21a1acd0a0abdd8a8d5cb9a7/docker/volumes/db/realtime.sql)
-is now preserved unchanged in `evidence/realtime.sql`, SHA-256
+is retained unchanged in `evidence/realtime.sql`, SHA-256
 `7e9e442e7fc4dae05544c07b67bede37a00d84644304dfce4d937134cb4c8f88`.
 It reads `POSTGRES_USER` through a psql shell metacommand, creates `_realtime` if
 absent, and explicitly sets the schema owner even if the schema already exists.
-This is compatible with the generated fixed `POSTGRES_USER=supabase_admin` and
-Realtime search path. It defines no tables, grants or publication membership.
-It requires psql preprocessing; it is not plain SQL for a generic migration API.
+This matches the generated fixed `POSTGRES_USER=supabase_admin` and Realtime
+search path. It defines no tables, grants or publication membership.
 
-No Dockerfile, startup adapter or build-context allowlist was changed to install
-it. A later reviewed configuration task must preserve its exact bytes and native
-`migrations/99-realtime.sql` installation point, verify bootstrap ordering and keep
-the PostgreSQL identity fixed. The runtime definition remains incomplete until
-that work is done. This source is separate from the historical Grocery fixtures.
+`Dockerfile.db` now copies this exact input to
+`/docker-entrypoint-initdb.d/migrations/99-realtime.sql`, the native location
+identified by the pinned upstream Compose file. A future build first rejects an
+existing destination and then verifies the copied file with `sha256sum -c -`.
+It neither templates nor executes SQL. The upstream native `migrate.sh` processes
+that migration-directory file through psql; the existing
+`zz-harness-passwords.sh` remains a later top-level initialization hook.
+No second SQL runner is added and no startup adapter is changed. Native execution
+order is retained by placement; actual bootstrap success remains untested.
+
+The explicit context allowlist adds only `evidence/realtime.sql`: its parent is
+traversable, `evidence/**` remains excluded, and that one file is re-included.
+Registry metadata, other evidence, docs, fixtures and caller configuration remain
+excluded. The original SQL's `.gitattributes` and raw bytes are unchanged.
+No image has been built, so the provenance field `runtime_installed` stays false;
+`build_integration_defined` records the new definition without claiming execution.
 The bundled platform may create unused platform schemas/roles; preserving its
 native dependency chain does not add Storage, Studio or other excluded services.
 
@@ -192,24 +206,63 @@ DNS, version checks and remote UI CSS/fonts are disabled. No SMTP relay/forward,
 webhook or SpamAssassin integration is supplied. These settings require later
 behavioral confirmation and egress-denial probes.
 
-## Runtime approval remains a separate gate
+## Task #3B image/input binding
 
-All Compose entrypoints point to the intentionally absent
-`/harness/TASK_2_RUNTIME_DISABLED`, and base-image healthchecks are disabled.
-Digest build arguments remain invalid `UNRESOLVED` values despite the newly
-verified provenance metadata; local derived images have
-`pull_policy: never`, and credential slots are non-secret invalid placeholders.
-`require_runtime_ready` always rejects. There is no runtime-enable input. These
-are accidental-use barriers, not permission to invoke Compose: a manually invoked
-Compose command could still create resources before failing. No such command is
-provided or executed.
+Integration checkpoint: `9d6355073a3515567037a462fb6c33d3a1191826`.
+All six Dockerfiles have literal `repository:tag@sha256:<amd64-child-manifest>`
+FROM references. There are no `ARG` instructions or digest overrides. The generated
+Compose document keeps `platform: linux/amd64` and an empty build-argument map.
+The full-document validator rejects added arguments, alternate architectures,
+index/config/ARM64 digests, foreign references and changes to runtime guards.
 
-A future reviewed task must integrate the verified image/platform digests and
-recovered bootstrap source, establish native bootstrap parity, and provide
-protected local key generation/persistence, dependency readiness, image
-effective-config inspection, daemon binding, fresh-volume ownership and
-network/egress checks, lifecycle journaling and exact-inventory teardown. It must
-also resolve the browser namespace placement without weakening the fixed origin
-or adding host ports/shared-network overrides. Image adaptation/build/start is
-not authorized by these documents. No baseline fixture, Migration 002/003 or
-Realtime application publication installation is wired into startup.
+`verify_build_inputs` runs before a plan is emitted or accepted. It checks the
+immutable Task #3A registry evidence-file hash, source-file hash, selected platform
+metadata, actual child-manifest body hash, Dockerfile FROM lines, bootstrap copy
+location/hash check and exact build-context rules. Missing/malformed or altered
+inputs fail with a fixed error. It performs local reads only. The plan's artifact
+hash inventory now includes the two nested evidence files, so source drift cannot
+hide behind the previous top-level-only inventory. A future executor still needs
+to build from a validated immutable context snapshot, preventing check/use races.
+
+The trusted reviewed repository remains the policy boundary; editing both policy
+code and evidence is not an authorized configuration mechanism. The original
+Task #3A hashes remain historical evidence in `task3a.runtime_files_unchanged`.
+Task #3B separately records the intentionally integrated definitions and the files
+that must remain unchanged, rather than rewriting that historical record.
+
+## Build and runtime gates
+
+All Compose entrypoints still point to the intentionally absent
+`/harness/TASK_2_RUNTIME_DISABLED`. Healthchecks remain disabled, derived images
+have `pull_policy: never`, credentials remain invalid placeholders, and
+`require_runtime_ready` always rejects. No runtime-enable input, build/start/export
+CLI or lifecycle executor was added. The fixed input digests replace the earlier
+invalid build arguments as requested; that is not runtime authorization. Blocker
+messages now describe the remaining build/execution gates instead of incorrectly
+claiming that source identities are unresolved.
+
+**GO for committing Task #3B. Conditional GO for a separately authorized controlled
+build-only task; NO-GO for runtime or database initialization.** Before any build,
+that next task must:
+
+1. Inspect the pinned base-image config metadata (including ONBUILD, inherited
+   environment, declared volumes, entrypoints and effective defaults); source and
+   manifest identity alone do not establish safe build behavior.
+2. Verify the selected local builder/daemon and architecture, snapshot the exact
+   allowlisted context and recheck its hashes, reject inherited overrides/remote
+   contexts, and retain network-disabled RUN steps. Base-image acquisition needs
+   explicit authorization and must use only the verified immutable references.
+3. Define unique build output ownership, a journal of any builder/cache resources,
+   failure behavior and exact cleanup scope. Do not reuse unrelated resources or
+   introduce global prune. Builds execute RUN steps and may create intermediate
+   builder containers; this requires build-only authorization, not runtime access.
+4. Keep every service entrypoint blocked. Do not start services, initialize a
+   database, execute SQL, install Grocery fixtures, or apply Migration 003/004.
+   Stop and report any incompatibility without relaxing the existing guards.
+
+No such inspection/build was performed here. Volume copy-up ownership, users and
+writable paths, PostgreSQL/native bootstrap compatibility, credentials, readiness,
+actual network isolation, protected lifecycle journaling and teardown remain
+runtime prerequisites. Browser namespace placement must preserve the fixed origin
+without host ports or forbidden shared-network overrides. All previously recorded
+limits on signatures, source-to-image correspondence and ARM64 behavior remain.

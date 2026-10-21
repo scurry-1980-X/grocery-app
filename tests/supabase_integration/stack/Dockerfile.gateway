@@ -1,5 +1,4 @@
-ARG BASE_DIGEST
-FROM envoyproxy/envoy:v1.39.4@${BASE_DIGEST}
+FROM envoyproxy/envoy:v1.39.4@sha256:63dd445d23d7d419d1bba8b2b9b1b8fdb80f38ae1516fb5d2dcd8856713b7eac
 USER 0:0
 RUN groupadd -g 10001 grocery && useradd -u 10001 -g 10001 -M grocery \
     && mkdir -p /var/lib/grocery-harness/home /var/lib/grocery-harness/tmp \

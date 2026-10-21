@@ -1,5 +1,4 @@
-ARG BASE_DIGEST
-FROM postgrest/postgrest:v14.18@${BASE_DIGEST}
+FROM postgrest/postgrest:v14.18@sha256:c847127074bd26e1b8d3f7c0e6e01e5346f4b85dd34f5d699fd230af960827c0
 # Do not assume a shell exists in the upstream static image.
 USER 1000:1000
 HEALTHCHECK NONE

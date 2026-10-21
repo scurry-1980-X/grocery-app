@@ -1,5 +1,4 @@
-ARG BASE_DIGEST
-FROM axllent/mailpit:v1.31.6@${BASE_DIGEST}
+FROM axllent/mailpit:v1.31.6@sha256:059454962fbda891cfa621c86a251cfd9cfe645cb43e0dcd9351a35e7a8f3155
 USER 0:0
 RUN addgroup -g 10001 grocery && adduser -D -H -u 10001 -G grocery grocery \
     && mkdir -p /var/lib/grocery-harness/home /var/lib/grocery-harness/tmp \
