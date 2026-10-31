@@ -244,23 +244,105 @@ document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
 
 let items = [];
-const { data: cloudItems, error: loadError } = await supabaseClient
-  .from('grocery_items')
-  .select('id, item_name, quantity, purchased')
-  .eq('list_id', sharedListId);
-if (loadError) console.error('Grocery items failed to load:', loadError);
-if (cloudItems) {
-  items = cloudItems.map(item => ({
-    id: item.id,
-    name: item.item_name,
-    quantity: item.quantity,
-    done: item.purchased
-  }));
-}
 let storageAvailable = true;
 let editingIndex = null;
+let pendingMutations = 0;
+let refreshInFlight = false;
+let refreshRequested = false;
+let refreshVersion = 0;
+let refreshTimer = null;
 
+function requestListRefresh() {
+  refreshRequested = true;
+  refreshVersion++;
+  if (refreshTimer !== null || refreshInFlight || pendingMutations > 0) return;
 
+  // Batch bursts such as the individual DELETE events from Clear Purchased.
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    void reloadGroceryItems();
+  }, 75);
+}
+
+async function reloadGroceryItems() {
+  if (!sharedListId) return;
+  if (refreshInFlight || pendingMutations > 0) {
+    refreshRequested = true;
+    return;
+  }
+
+  refreshInFlight = true;
+  refreshRequested = false;
+  const version = refreshVersion;
+  const listId = sharedListId;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('grocery_items')
+      .select('id, item_name, quantity, purchased')
+      .eq('list_id', listId);
+    if (error) {
+      console.error('Grocery items failed to load:', error);
+      return;
+    }
+
+    // A mutation or newer event makes this snapshot potentially stale.
+    if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
+      refreshRequested = true;
+      return;
+    }
+
+    const rowsById = new Map(data.map(item => [item.id, {
+      id: item.id,
+      name: item.item_name,
+      quantity: item.quantity,
+      done: item.purchased
+    }]));
+    const nextItems = [];
+    // Keep existing rows in their current order; append newly discovered rows.
+    for (const item of items) {
+      if (rowsById.has(item.id)) {
+        nextItems.push(rowsById.get(item.id));
+        rowsById.delete(item.id);
+      }
+    }
+    nextItems.push(...rowsById.values());
+
+    const unchanged = items.length === nextItems.length && items.every((item, index) => {
+      const next = nextItems[index];
+      return item.id === next.id && item.name === next.name &&
+        item.quantity === next.quantity && item.done === next.done;
+    });
+    // Keep the objects captured by existing DOM handlers when nothing changed.
+    if (unchanged) return;
+
+    const editingId = editingIndex === null ? null : items[editingIndex]?.id;
+    items = nextItems;
+    if (editingIndex !== null) {
+      editingIndex = items.findIndex(item => item.id === editingId);
+      if (editingIndex === -1) resetForm();
+    }
+    render();
+  } catch (error) {
+    console.error('Grocery items failed to load:', error);
+  } finally {
+    refreshInFlight = false;
+    if (refreshRequested) requestListRefresh();
+  }
+}
+
+function withLocalMutation(handler) {
+  return async (...args) => {
+    pendingMutations++;
+    refreshVersion++;
+    try {
+      return await handler(...args);
+    } finally {
+      pendingMutations--;
+      requestListRefresh();
+    }
+  };
+}
 
 function save() {
   try {
@@ -341,7 +423,7 @@ function render() {
 
     check.addEventListener(
       'change',
-     async () => {
+     withLocalMutation(async () => {
         item.done = check.checked;
 const { error: updateError } = await supabaseClient
 .from('grocery_items')
@@ -358,7 +440,7 @@ render();
             .querySelector('input')
             .focus();
         }
-      }
+      })
     );
 
     const text =
@@ -401,7 +483,7 @@ render();
 
     remove.addEventListener(
       'click',
-    async  () => {
+    withLocalMutation(async () => {
 const { error: deleteError } = await supabaseClient
 .from('grocery_items')
 .delete()
@@ -437,7 +519,7 @@ resetForm();
         } else {
           nameInput.focus();
         }
-      }
+      })
     );
 
     row.append(
@@ -456,7 +538,7 @@ resetForm();
 
 form.addEventListener(
   'submit',
-async event => {
+withLocalMutation(async event => {
     event.preventDefault();
 
     const name =
@@ -519,7 +601,7 @@ render();
 }
     resetForm();
     nameInput.focus();
-  }
+  })
 );
 
 cancelEditButton.addEventListener(
@@ -532,7 +614,7 @@ cancelEditButton.addEventListener(
 
 clearButton.addEventListener(
   'click',
-  async () => {
+  withLocalMutation(async () => {
     const { error: clearError } = await supabaseClient
       .from('grocery_items')
       .delete()
@@ -550,10 +632,33 @@ clearButton.addEventListener(
     resetForm();
     render();
     nameInput.focus();
-  }
+  })
 );
 
 render();
+await reloadGroceryItems();
+
+if (session && sharedListId) {
+  supabaseClient
+    .channel(`grocery-items:${sharedListId}`)
+    // DELETE payloads may only contain the primary key under RLS. Reloading
+    // the current list also makes unrelated table events harmless to the UI.
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'grocery_items'
+    }, requestListRefresh)
+    .subscribe((subscriptionStatus, error) => {
+      if (subscriptionStatus === 'SUBSCRIBED') {
+        // Close the initial-load gap and catch up after a reconnect.
+        requestListRefresh();
+      } else if (subscriptionStatus === 'CHANNEL_ERROR' ||
+                 subscriptionStatus === 'TIMED_OUT' ||
+                 subscriptionStatus === 'CLOSED') {
+        console.error('Grocery Realtime subscription:', subscriptionStatus, error);
+      }
+    });
+}
 </script>
 </body>
 </html>
