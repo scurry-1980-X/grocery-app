@@ -532,14 +532,23 @@ cancelEditButton.addEventListener(
 
 clearButton.addEventListener(
   'click',
-  () => {
+  async () => {
+    const { error: clearError } = await supabaseClient
+      .from('grocery_items')
+      .delete()
+      .eq('list_id', sharedListId)
+      .eq('purchased', true);
+    if (clearError) {
+      console.error('Purchased items failed to clear:', clearError);
+      return;
+    }
     items =
       items.filter(
         item => !item.done
       );
 
     resetForm();
-    save();
+    render();
     nameInput.focus();
   }
 );
