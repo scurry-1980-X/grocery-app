@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, 
+<meta name="viewport" content="width=device-width,
 initial-scale=1">
 <meta name="theme-color" content="#24734e">
 <link rel="apple-touch-icon" href="grocery_app_icon.png">
-<link rel="icon" type="image/png" 
+<link rel="icon" type="image/png"
 href="grocery_app_icon.png">
-<meta name="apple-mobile-web-app-title" content="My Grocery 
+<meta name="apple-mobile-web-app-title" content="My Grocery
 List">
 <title>My Grocery List</title>
 
@@ -35,7 +35,8 @@ List">
   }
 
   .intro,
-  #status {
+  #status,
+  #invite-status {
     color: #536659;
   }
 
@@ -51,7 +52,8 @@ List">
     font-weight: 600;
   }
 
-  input {
+  input,
+  select {
     display: block;
     width: 100%;
     padding: 14px;
@@ -60,6 +62,12 @@ List">
     border-radius: 12px;
     font: inherit;
     background: white;
+  }
+
+  select {
+    min-height: 48px;
+    padding-inline: 8px;
+    font-size: 16px;
   }
 
   button {
@@ -78,7 +86,8 @@ List">
   }
 
   button:focus-visible,
-  input:focus-visible {
+  input:focus-visible,
+  select:focus-visible {
     outline: 3px solid #dc970b;
     outline-offset: 3px;
   }
@@ -142,6 +151,22 @@ List">
     color: #21362a;
   }
 
+  .sharing {
+    margin-top: 24px;
+  }
+
+  .sharing button {
+    margin: 6px 0;
+  }
+
+  #invite-link-panel {
+    margin-top: 12px;
+  }
+
+  #invite-status:empty {
+    display: none;
+  }
+
   .note {
     font-size: 13px;
     color: #536659;
@@ -155,6 +180,26 @@ List">
   <h1>My Grocery List 🥬</h1>
   <p class="intro">A little less to remember.</p>
 
+  <section class="sharing" aria-label="Share this grocery list">
+    <button id="create-invite" type="button" hidden>Create invite link</button>
+    <div id="invite-link-panel" hidden>
+      <label for="invite-link">Invitation link</label>
+      <input id="invite-link" type="text" readonly spellcheck="false">
+      <button id="copy-invite" type="button">Copy link</button>
+      <p class="note">Anyone with this link can join. It expires and can be used once.</p>
+    </div>
+    <div id="join-panel" hidden>
+      <p>Join this shared grocery list? It will become the active list on this
+        device. Your previous list will not be deleted.</p>
+      <button id="join-list" type="button">Join shared list</button>
+      <button id="cancel-join" type="button">Cancel</button>
+    </div>
+    <p id="invite-status" role="status">Connecting to your grocery list…</p>
+    <button id="retry-startup" type="button" hidden>Retry connection</button>
+    <p id="list-storage-warning" class="note" role="status" hidden></p>
+  </section>
+
+  <section id="grocery-content" aria-label="Grocery list" hidden>
   <form id="form">
     <label>
       Item
@@ -169,15 +214,9 @@ List">
 
     <label>
       Quantity
-      <input
-        id="quantity"
-        type="number"
-        value="1"
-        min="1"
-        max="999"
-        step="1"
-        required
-      >
+      <select id="quantity" required>
+        <option value="1" selected>1</option>
+      </select>
     </label>
 
     <button id="submit-button" type="submit">
@@ -196,14 +235,27 @@ List">
   <button id="clear" type="button">
     Clear purchased items
   </button>
+  </section>
 
   <p class="note">
-    Your list stays in this browser on this device.
-    Clearing browser data will erase it.
+    Your groceries are saved online. This browser remembers your anonymous
+    access. Clearing browser data may require a new invitation to rejoin.
   </p>
 </main>
 
-<script>
+<script type="module">
+
+const supabaseModuleUrl = 'https' + '://' + 'esm.sh' +
+'/@supabase/supabase-js@2';
+
+const { createClient } = await import(supabaseModuleUrl);
+
+const supabaseUrl = 'https://zhineklvgjqqxhefjaqn.supabase.co';
+const supabaseKey = 'sb_publishable_4KrJqyihIQlh8t6vGMKqUQ_aEdztg8R';
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+let session = null;
+const sharedListKey = 'shared-grocery-list-id';
+let sharedListId = null;
 const key = 'my-groceries-v1';
 
 const list = document.querySelector('#list');
@@ -211,33 +263,321 @@ const status = document.querySelector('#status');
 const form = document.querySelector('#form');
 const nameInput = document.querySelector('#name');
 const quantityInput = document.querySelector('#quantity');
-const submitButton = 
+setQuantityOptions();
+const submitButton =
 document.querySelector('#submit-button');
-const cancelEditButton = 
+const cancelEditButton =
 document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
+const groceryContent = document.querySelector('#grocery-content');
+const createInviteButton = document.querySelector('#create-invite');
+const inviteLinkPanel = document.querySelector('#invite-link-panel');
+const inviteLinkInput = document.querySelector('#invite-link');
+const copyInviteButton = document.querySelector('#copy-invite');
+const joinPanel = document.querySelector('#join-panel');
+const joinButton = document.querySelector('#join-list');
+const cancelJoinButton = document.querySelector('#cancel-join');
+const inviteStatus = document.querySelector('#invite-status');
+const retryStartupButton = document.querySelector('#retry-startup');
+const listStorageWarning = document.querySelector('#list-storage-warning');
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let inviteBusy = false;
+let inviteNavigationPending = false;
 
 let items = [];
 let storageAvailable = true;
 let editingIndex = null;
+let pendingMutations = 0;
+let refreshInFlight = false;
+let refreshRequested = false;
+let refreshVersion = 0;
+let refreshTimer = null;
 
-try {
-  const saved = JSON.parse(
-    localStorage.getItem(key) || '[]'
-  );
+function showListStorageWarning() {
+  listStorageWarning.textContent = 'This browser could not remember your list. ' +
+    'Keep this page open; reopening it may require a fresh invitation.';
+  listStorageWarning.hidden = false;
+}
 
-  if (Array.isArray(saved)) {
-    items = saved.filter(item =>
-      item &&
-      typeof item.name === 'string' &&
-      Number.isInteger(item.quantity) &&
-      item.quantity >= 1 &&
-      item.quantity <= 999 &&
-      typeof item.done === 'boolean'
-    );
+function selectSharedList(listId) {
+  sharedListId = listId;
+  try {
+    localStorage.setItem(sharedListKey, listId);
+  } catch {
+    showListStorageWarning();
   }
-} catch {
-  storageAvailable = false;
+}
+
+function removeInviteFromUrl() {
+  const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  fragment.delete('invite');
+  url.hash = fragment.toString();
+  window.history.replaceState(null, '', url.href);
+}
+
+function resumeInviteNavigation() {
+  if (inviteNavigationPending && !inviteBusy && pendingMutations === 0) {
+    window.location.reload();
+  }
+}
+
+// A fragment-only navigation can reuse an open tab. Finish active writes,
+// then restart so the new invitation cannot switch lists under their handlers.
+window.addEventListener('hashchange', () => {
+  if (!new URLSearchParams(window.location.hash.slice(1)).has('invite')) return;
+  inviteNavigationPending = true;
+  document.querySelector('main').inert = true;
+  inviteStatus.textContent = 'Opening invitation after current changes finish…';
+  resumeInviteNavigation();
+});
+
+function offerInvitation(tokens) {
+  joinPanel.hidden = false;
+  const valid = tokens.length === 1 && uuidPattern.test(tokens[0]);
+  joinButton.disabled = !valid;
+  inviteStatus.textContent = valid ? 'An invitation is ready to join.' :
+    'This invitation link is malformed. Ask for a new link or cancel.';
+
+  return new Promise(resolve => {
+    function finish(joined) {
+      joinButton.removeEventListener('click', join);
+      cancelJoinButton.removeEventListener('click', cancel);
+      joinPanel.hidden = true;
+      // Preserve a newer invitation if the URL changed during redemption.
+      if (!inviteNavigationPending) removeInviteFromUrl();
+      resolve(joined);
+    }
+
+    function cancel() {
+      if (!inviteBusy && !inviteNavigationPending) finish(false);
+    }
+
+    async function join() {
+      if (joinButton.disabled || inviteBusy || inviteNavigationPending) return;
+      inviteBusy = true;
+      joinButton.disabled = true;
+      cancelJoinButton.disabled = true;
+      inviteStatus.textContent = 'Joining shared list…';
+      try {
+        const { data, error } = await supabaseClient.rpc('redeem_grocery_list_invite', {
+          invite_token: tokens[0]
+        });
+        if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+          throw new Error('Invitation redemption was not confirmed.');
+        }
+        selectSharedList(data);
+        inviteStatus.textContent = 'Joined the shared grocery list.';
+        finish(true);
+      } catch {
+        // A lost response may mean the single-use token was already consumed.
+        // Do not retry automatically or display server errors containing tokens.
+        inviteStatus.textContent = 'Could not confirm the invitation. It may be expired, ' +
+          'already used, or the connection was interrupted. Ask for a fresh link, ' +
+          'or cancel to continue without joining.';
+      } finally {
+        inviteBusy = false;
+        cancelJoinButton.disabled = false;
+        resumeInviteNavigation();
+      }
+    }
+
+    joinButton.addEventListener('click', join);
+    cancelJoinButton.addEventListener('click', cancel);
+  });
+}
+
+async function initializeSharedList() {
+  try {
+    const current = await supabaseClient.auth.getSession();
+    if (current.error) throw current.error;
+    session = current.data.session;
+    if (!session) {
+      const signedIn = await supabaseClient.auth.signInAnonymously();
+      if (signedIn.error) throw signedIn.error;
+      session = signedIn.data.session;
+    }
+    if (!session) throw new Error('No anonymous session.');
+  } catch {
+    inviteStatus.textContent = 'Could not connect anonymously. Check your connection and retry.';
+    retryStartupButton.hidden = false;
+    return false;
+  }
+
+  try {
+    sharedListId = localStorage.getItem(sharedListKey);
+  } catch {
+    showListStorageWarning();
+  }
+
+  const fragment = new URLSearchParams(window.location.hash.slice(1));
+  if (fragment.has('invite')) {
+    const joined = await offerInvitation(fragment.getAll('invite'));
+    if (inviteNavigationPending) return false;
+    if (joined) return true;
+  }
+
+  inviteStatus.textContent = '';
+  if (!sharedListId) {
+    inviteBusy = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('create_grocery_list');
+      if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+        throw new Error('List creation was not confirmed.');
+      }
+      selectSharedList(data);
+    } catch {
+      inviteStatus.textContent = 'Could not open your grocery list. Check your connection and retry.';
+      retryStartupButton.hidden = false;
+      return false;
+    } finally {
+      inviteBusy = false;
+      resumeInviteNavigation();
+    }
+  }
+  return !inviteNavigationPending;
+}
+
+retryStartupButton.addEventListener('click', () => window.location.reload());
+
+createInviteButton.addEventListener('click', async () => {
+  if (!session || !sharedListId || inviteBusy || inviteNavigationPending) return;
+  inviteBusy = true;
+  createInviteButton.disabled = true;
+  inviteStatus.textContent = 'Creating invitation…';
+  try {
+    const { data, error } = await supabaseClient.rpc('create_grocery_list_invite', {
+      target_list_id: sharedListId
+    });
+    if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+      throw new Error('Invitation creation was not confirmed.');
+    }
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = new URLSearchParams({ invite: data }).toString();
+    inviteLinkInput.value = url.href;
+    inviteLinkPanel.hidden = false;
+    inviteStatus.textContent = 'Invitation created. Copy the link and send it to the person joining.';
+    if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      inviteStatus.textContent += ' This address only works on this device. ' +
+        'Open the app at its shared web address to invite someone on another phone.';
+    }
+  } catch {
+    inviteStatus.textContent = 'Could not create an invitation. Check your connection and list access.';
+  } finally {
+    inviteBusy = false;
+    createInviteButton.disabled = false;
+    resumeInviteNavigation();
+  }
+});
+
+copyInviteButton.addEventListener('click', async () => {
+  if (!inviteLinkInput.value) return;
+  try {
+    await navigator.clipboard.writeText(inviteLinkInput.value);
+    inviteStatus.textContent = 'Invitation link copied.';
+  } catch {
+    inviteLinkInput.focus();
+    inviteLinkInput.select();
+    inviteStatus.textContent = 'Copy is unavailable. Copy the selected invitation link manually.';
+  }
+});
+
+function requestListRefresh() {
+  refreshRequested = true;
+  refreshVersion++;
+  if (refreshTimer !== null || refreshInFlight || pendingMutations > 0) return;
+
+  // Batch bursts such as the individual DELETE events from Clear Purchased.
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    void reloadGroceryItems();
+  }, 75);
+}
+
+async function reloadGroceryItems() {
+  if (!sharedListId) return;
+  if (refreshInFlight || pendingMutations > 0) {
+    refreshRequested = true;
+    return;
+  }
+
+  refreshInFlight = true;
+  refreshRequested = false;
+  const version = refreshVersion;
+  const listId = sharedListId;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('grocery_items')
+      .select('id, item_name, quantity, purchased')
+      .eq('list_id', listId);
+    if (error) {
+      console.error('Grocery items failed to load:', error);
+      return;
+    }
+
+    // A mutation or newer event makes this snapshot potentially stale.
+    if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
+      refreshRequested = true;
+      return;
+    }
+
+    const rowsById = new Map(data.map(item => [item.id, {
+      id: item.id,
+      name: item.item_name,
+      quantity: item.quantity,
+      done: item.purchased
+    }]));
+    const nextItems = [];
+    // Keep existing rows in their current order; append newly discovered rows.
+    for (const item of items) {
+      if (rowsById.has(item.id)) {
+        nextItems.push(rowsById.get(item.id));
+        rowsById.delete(item.id);
+      }
+    }
+    nextItems.push(...rowsById.values());
+
+    const unchanged = items.length === nextItems.length && items.every((item, index) => {
+      const next = nextItems[index];
+      return item.id === next.id && item.name === next.name &&
+        item.quantity === next.quantity && item.done === next.done;
+    });
+    // Keep the objects captured by existing DOM handlers when nothing changed.
+    if (unchanged) return;
+
+    const editingId = editingIndex === null ? null : items[editingIndex]?.id;
+    items = nextItems;
+    if (editingIndex !== null) {
+      editingIndex = items.findIndex(item => item.id === editingId);
+      if (editingIndex === -1) resetForm();
+    }
+    render();
+  } catch (error) {
+    console.error('Grocery items failed to load:', error);
+  } finally {
+    refreshInFlight = false;
+    if (refreshRequested) requestListRefresh();
+  }
+}
+
+function withLocalMutation(handler) {
+  return async (...args) => {
+    if (inviteNavigationPending) {
+      args[0]?.preventDefault?.();
+      return;
+    }
+    pendingMutations++;
+    refreshVersion++;
+    try {
+      return await handler(...args);
+    } finally {
+      pendingMutations--;
+      requestListRefresh();
+      resumeInviteNavigation();
+    }
+  };
 }
 
 function save() {
@@ -255,11 +595,24 @@ function save() {
   render();
 }
 
+function setQuantityOptions(quantity = 1) {
+  quantityInput.replaceChildren(...Array.from({ length: 100 }, (_, index) =>
+    new Option(String(index + 1), String(index + 1))
+  ));
+  quantityInput.value = String(quantity);
+  // Keep legacy quantities visible and unchanged until a new value is chosen.
+  if (quantityInput.value === '') {
+    const existingOption = new Option(String(quantity), String(quantity), false, true);
+    existingOption.disabled = true;
+    quantityInput.add(existingOption);
+  }
+}
+
 function resetForm() {
   editingIndex = null;
 
   nameInput.value = '';
-  quantityInput.value = '1';
+  setQuantityOptions();
 
   submitButton.textContent = 'Add to list';
   cancelEditButton.style.display = 'none';
@@ -271,7 +624,7 @@ function startEdit(index) {
   editingIndex = index;
 
   nameInput.value = item.name;
-  quantityInput.value = item.quantity;
+  setQuantityOptions(item.quantity);
 
   submitButton.textContent = 'Save changes';
   cancelEditButton.style.display = 'block';
@@ -319,9 +672,14 @@ function render() {
 
     check.addEventListener(
       'change',
-      () => {
+     withLocalMutation(async () => {
         item.done = check.checked;
-        save();
+const { error: updateError } = await supabaseClient
+.from('grocery_items')
+.update({ purchased: check.checked })
+.eq('id', item.id);
+if (updateError) console.error('Purchased status failed to update:', updateError);
+render();
 
         const replacement =
           list.children[index];
@@ -331,7 +689,7 @@ function render() {
             .querySelector('input')
             .focus();
         }
-      }
+      })
     );
 
     const text =
@@ -374,19 +732,26 @@ function render() {
 
     remove.addEventListener(
       'click',
-      () => {
+    withLocalMutation(async () => {
+const { error: deleteError } = await supabaseClient
+.from('grocery_items')
+.delete()
+.eq('id', item.id);
+if (deleteError) console.error('Grocery item failed to remove:', deleteError);
+if (deleteError) return;
         items.splice(index, 1);
+        render();
 
         if (editingIndex === index) {
-          resetForm();
-        } else if (
+
+resetForm();
+ } else if (
           editingIndex !== null &&
           editingIndex > index
         ) {
           editingIndex--;
         }
 
-        save();
 
         const next =
           list.children[
@@ -403,7 +768,7 @@ function render() {
         } else {
           nameInput.focus();
         }
-      }
+      })
     );
 
     row.append(
@@ -442,7 +807,7 @@ function parseGroceryList(text, defaultQuantity = 1) {
 }
 form.addEventListener(
   'submit',
-  event => {
+withLocalMutation(async event => {
     event.preventDefault();
 
     const name =
@@ -466,23 +831,58 @@ form.addEventListener(
     }
 
     if (editingIndex !== null) {
+const itemToEdit = items[editingIndex];
+const { error: editError } = await supabaseClient
+.from('grocery_items')
+.update({ item_name: name, quantity: quantity })
+.eq('id', itemToEdit.id);
+if (editError) console.error('Grocery item failed to update:', editError);
+if (editError) return;
       items[editingIndex].name =
         name;
 
       items[editingIndex].quantity =
         quantity;
+render();
     } else {
 const parsedItems = parseGroceryList(name, quantity);
-items.push(...parsedItems.map(item => ({
-  ...item,
-  done: false
-})));
-    }
 
+if (parsedItems.some(item =>
+  !Number.isInteger(item.quantity) ||
+  item.quantity < 1 ||
+  item.quantity > 999
+)) {
+  quantityInput.focus();
+  return;
+}
+
+const { data: newItems, error: addError } = await supabaseClient
+  .from('grocery_items')
+  .insert(parsedItems.map(item => ({
+    item_name: item.name,
+    quantity: item.quantity,
+    purchased: false,
+    list_id: sharedListId,
+    owner_id: session.user.id
+  })))
+  .select('id, item_name, quantity, purchased');
+
+if (addError) {
+  console.error('Grocery items failed to add:', addError);
+  return;
+}
+
+items.push(...newItems.map(item => ({
+  id: item.id,
+  name: item.item_name,
+  quantity: item.quantity,
+  done: item.purchased
+})));
+render();
+    }
     resetForm();
-    save();
     nameInput.focus();
-  }
+  })
 );
 
 cancelEditButton.addEventListener(
@@ -495,19 +895,52 @@ cancelEditButton.addEventListener(
 
 clearButton.addEventListener(
   'click',
-  () => {
+  withLocalMutation(async () => {
+    const { error: clearError } = await supabaseClient
+      .from('grocery_items')
+      .delete()
+      .eq('list_id', sharedListId)
+      .eq('purchased', true);
+    if (clearError) {
+      console.error('Purchased items failed to clear:', clearError);
+      return;
+    }
     items =
       items.filter(
         item => !item.done
       );
 
     resetForm();
-    save();
+    render();
     nameInput.focus();
-  }
+  })
 );
 
-render();
+if (await initializeSharedList()) {
+  groceryContent.hidden = false;
+  createInviteButton.hidden = false;
+  render();
+  await reloadGroceryItems();
+  supabaseClient
+    .channel(`grocery-items:${sharedListId}`)
+    // DELETE payloads may only contain the primary key under RLS. Reloading
+    // the current list also makes unrelated table events harmless to the UI.
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'grocery_items'
+    }, requestListRefresh)
+    .subscribe((subscriptionStatus, error) => {
+      if (subscriptionStatus === 'SUBSCRIBED') {
+        // Close the initial-load gap and catch up after a reconnect.
+        requestListRefresh();
+      } else if (subscriptionStatus === 'CHANNEL_ERROR' ||
+                 subscriptionStatus === 'TIMED_OUT' ||
+                 subscriptionStatus === 'CLOSED') {
+        console.error('Grocery Realtime subscription:', subscriptionStatus, error);
+      }
+    });
+}
 </script>
 </body>
 </html>
