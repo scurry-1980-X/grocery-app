@@ -768,7 +768,27 @@ resetForm();
   clearButton.disabled =
     !items.some(item => item.done);
 }
+  function parseGroceryItem(text, defaultQuantity = 1) {
+  const match = text.trim().match(/^(\d+)\s*(.+)$/);
 
+  if (match) {
+    return {
+      quantity: Number(match[1]),
+      name: match[2].trim()
+    };
+  }
+
+  return {
+    quantity: defaultQuantity,
+    name: text.trim()
+  };
+}
+function parseGroceryList(text, defaultQuantity = 1) {
+  return text
+    .split(',')
+    .map(item => parseGroceryItem(item, defaultQuantity))
+    .filter(item => item.name);
+}
 form.addEventListener(
   'submit',
 withLocalMutation(async event => {
@@ -809,29 +829,41 @@ if (editError) return;
         quantity;
 render();
     } else {
-const { data: newItem, error: addError } = await supabaseClient
-.from('grocery_items')
-.insert({
-item_name: name,
-quantity: quantity,
-purchased: false,
-list_id: sharedListId,
-owner_id: session.user.id
-  })
-.select('id, item_name, quantity, purchased')
-.single();
-if (addError) console.error('Grocery item failed to add:', addError);
-if (newItem) {
-items.push({
-id: newItem.id,
-name: newItem.item_name,
-quantity: newItem.quantity,
-done: newItem.purchased
-});
-render();
+const parsedItems = parseGroceryList(name, quantity);
+
+if (parsedItems.some(item =>
+  !Number.isInteger(item.quantity) ||
+  item.quantity < 1 ||
+  item.quantity > 999
+)) {
+  quantityInput.focus();
+  return;
 }
 
+const { data: newItems, error: addError } = await supabaseClient
+  .from('grocery_items')
+  .insert(parsedItems.map(item => ({
+    item_name: item.name,
+    quantity: item.quantity,
+    purchased: false,
+    list_id: sharedListId,
+    owner_id: session.user.id
+  })))
+  .select('id, item_name, quantity, purchased');
+
+if (addError) {
+  console.error('Grocery items failed to add:', addError);
+  return;
 }
+
+items.push(...newItems.map(item => ({
+  id: item.id,
+  name: item.item_name,
+  quantity: item.quantity,
+  done: item.purchased
+})));
+render();
+    }
     resetForm();
     nameInput.focus();
   })
