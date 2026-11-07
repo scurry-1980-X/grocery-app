@@ -35,7 +35,8 @@ List">
   }
 
   .intro,
-  #status {
+  #status,
+  #invite-status {
     color: #536659;
   }
 
@@ -142,6 +143,22 @@ List">
     color: #21362a;
   }
 
+  .sharing {
+    margin-top: 24px;
+  }
+
+  .sharing button {
+    margin: 6px 0;
+  }
+
+  #invite-link-panel {
+    margin-top: 12px;
+  }
+
+  #invite-status:empty {
+    display: none;
+  }
+
   .note {
     font-size: 13px;
     color: #536659;
@@ -155,6 +172,26 @@ List">
   <h1>My Grocery List 🥬</h1>
   <p class="intro">A little less to remember.</p>
 
+  <section class="sharing" aria-label="Share this grocery list">
+    <button id="create-invite" type="button" hidden>Create invite link</button>
+    <div id="invite-link-panel" hidden>
+      <label for="invite-link">Invitation link</label>
+      <input id="invite-link" type="text" readonly spellcheck="false">
+      <button id="copy-invite" type="button">Copy link</button>
+      <p class="note">Anyone with this link can join. It expires and can be used once.</p>
+    </div>
+    <div id="join-panel" hidden>
+      <p>Join this shared grocery list? It will become the active list on this
+        device. Your previous list will not be deleted.</p>
+      <button id="join-list" type="button">Join shared list</button>
+      <button id="cancel-join" type="button">Cancel</button>
+    </div>
+    <p id="invite-status" role="status">Connecting to your grocery list…</p>
+    <button id="retry-startup" type="button" hidden>Retry connection</button>
+    <p id="list-storage-warning" class="note" role="status" hidden></p>
+  </section>
+
+  <section id="grocery-content" aria-label="Grocery list" hidden>
   <form id="form">
     <label>
       Item
@@ -196,10 +233,11 @@ List">
   <button id="clear" type="button">
     Clear purchased items
   </button>
+  </section>
 
   <p class="note">
-    Your list stays in this browser on this device.
-    Clearing browser data will erase it.
+    Your groceries are saved online. This browser remembers your anonymous
+    access. Clearing browser data may require a new invitation to rejoin.
   </p>
 </main>
 
@@ -213,23 +251,9 @@ const { createClient } = await import(supabaseModuleUrl);
 const supabaseUrl = 'https://zhineklvgjqqxhefjaqn.supabase.co';
 const supabaseKey = 'sb_publishable_4KrJqyihIQlh8t6vGMKqUQ_aEdztg8R';
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
-let { data: { session } } = await supabaseClient.auth.getSession();
-if (!session) {
-  const { error } = await supabaseClient.auth.signInAnonymously();
-  if (error) console.error('Anonymous sign-in failed:', error);
-  session = (await supabaseClient.auth.getSession()).data.session;
-}
+let session = null;
 const sharedListKey = 'shared-grocery-list-id';
-let sharedListId = localStorage.getItem(sharedListKey);
-if (!sharedListId && session) {
-    const { data, error } = await
-supabaseClient.rpc('create_grocery_list');
-  if (error) console.error('Shared list creation failed:', error);
-  if (data) {
-    sharedListId = data;
-    localStorage.setItem(sharedListKey, sharedListId);
-  }
-}
+let sharedListId = null;
 const key = 'my-groceries-v1';
 
 const list = document.querySelector('#list');
@@ -242,6 +266,20 @@ document.querySelector('#submit-button');
 const cancelEditButton =
 document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
+const groceryContent = document.querySelector('#grocery-content');
+const createInviteButton = document.querySelector('#create-invite');
+const inviteLinkPanel = document.querySelector('#invite-link-panel');
+const inviteLinkInput = document.querySelector('#invite-link');
+const copyInviteButton = document.querySelector('#copy-invite');
+const joinPanel = document.querySelector('#join-panel');
+const joinButton = document.querySelector('#join-list');
+const cancelJoinButton = document.querySelector('#cancel-join');
+const inviteStatus = document.querySelector('#invite-status');
+const retryStartupButton = document.querySelector('#retry-startup');
+const listStorageWarning = document.querySelector('#list-storage-warning');
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let inviteBusy = false;
+let inviteNavigationPending = false;
 
 let items = [];
 let storageAvailable = true;
@@ -251,6 +289,196 @@ let refreshInFlight = false;
 let refreshRequested = false;
 let refreshVersion = 0;
 let refreshTimer = null;
+
+function showListStorageWarning() {
+  listStorageWarning.textContent = 'This browser could not remember your list. ' +
+    'Keep this page open; reopening it may require a fresh invitation.';
+  listStorageWarning.hidden = false;
+}
+
+function selectSharedList(listId) {
+  sharedListId = listId;
+  try {
+    localStorage.setItem(sharedListKey, listId);
+  } catch {
+    showListStorageWarning();
+  }
+}
+
+function removeInviteFromUrl() {
+  const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  fragment.delete('invite');
+  url.hash = fragment.toString();
+  window.history.replaceState(null, '', url.href);
+}
+
+function resumeInviteNavigation() {
+  if (inviteNavigationPending && !inviteBusy && pendingMutations === 0) {
+    window.location.reload();
+  }
+}
+
+// A fragment-only navigation can reuse an open tab. Finish active writes,
+// then restart so the new invitation cannot switch lists under their handlers.
+window.addEventListener('hashchange', () => {
+  if (!new URLSearchParams(window.location.hash.slice(1)).has('invite')) return;
+  inviteNavigationPending = true;
+  document.querySelector('main').inert = true;
+  inviteStatus.textContent = 'Opening invitation after current changes finish…';
+  resumeInviteNavigation();
+});
+
+function offerInvitation(tokens) {
+  joinPanel.hidden = false;
+  const valid = tokens.length === 1 && uuidPattern.test(tokens[0]);
+  joinButton.disabled = !valid;
+  inviteStatus.textContent = valid ? 'An invitation is ready to join.' :
+    'This invitation link is malformed. Ask for a new link or cancel.';
+
+  return new Promise(resolve => {
+    function finish(joined) {
+      joinButton.removeEventListener('click', join);
+      cancelJoinButton.removeEventListener('click', cancel);
+      joinPanel.hidden = true;
+      // Preserve a newer invitation if the URL changed during redemption.
+      if (!inviteNavigationPending) removeInviteFromUrl();
+      resolve(joined);
+    }
+
+    function cancel() {
+      if (!inviteBusy && !inviteNavigationPending) finish(false);
+    }
+
+    async function join() {
+      if (joinButton.disabled || inviteBusy || inviteNavigationPending) return;
+      inviteBusy = true;
+      joinButton.disabled = true;
+      cancelJoinButton.disabled = true;
+      inviteStatus.textContent = 'Joining shared list…';
+      try {
+        const { data, error } = await supabaseClient.rpc('redeem_grocery_list_invite', {
+          invite_token: tokens[0]
+        });
+        if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+          throw new Error('Invitation redemption was not confirmed.');
+        }
+        selectSharedList(data);
+        inviteStatus.textContent = 'Joined the shared grocery list.';
+        finish(true);
+      } catch {
+        // A lost response may mean the single-use token was already consumed.
+        // Do not retry automatically or display server errors containing tokens.
+        inviteStatus.textContent = 'Could not confirm the invitation. It may be expired, ' +
+          'already used, or the connection was interrupted. Ask for a fresh link, ' +
+          'or cancel to continue without joining.';
+      } finally {
+        inviteBusy = false;
+        cancelJoinButton.disabled = false;
+        resumeInviteNavigation();
+      }
+    }
+
+    joinButton.addEventListener('click', join);
+    cancelJoinButton.addEventListener('click', cancel);
+  });
+}
+
+async function initializeSharedList() {
+  try {
+    const current = await supabaseClient.auth.getSession();
+    if (current.error) throw current.error;
+    session = current.data.session;
+    if (!session) {
+      const signedIn = await supabaseClient.auth.signInAnonymously();
+      if (signedIn.error) throw signedIn.error;
+      session = signedIn.data.session;
+    }
+    if (!session) throw new Error('No anonymous session.');
+  } catch {
+    inviteStatus.textContent = 'Could not connect anonymously. Check your connection and retry.';
+    retryStartupButton.hidden = false;
+    return false;
+  }
+
+  try {
+    sharedListId = localStorage.getItem(sharedListKey);
+  } catch {
+    showListStorageWarning();
+  }
+
+  const fragment = new URLSearchParams(window.location.hash.slice(1));
+  if (fragment.has('invite')) {
+    const joined = await offerInvitation(fragment.getAll('invite'));
+    if (inviteNavigationPending) return false;
+    if (joined) return true;
+  }
+
+  inviteStatus.textContent = '';
+  if (!sharedListId) {
+    inviteBusy = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('create_grocery_list');
+      if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+        throw new Error('List creation was not confirmed.');
+      }
+      selectSharedList(data);
+    } catch {
+      inviteStatus.textContent = 'Could not open your grocery list. Check your connection and retry.';
+      retryStartupButton.hidden = false;
+      return false;
+    } finally {
+      inviteBusy = false;
+      resumeInviteNavigation();
+    }
+  }
+  return !inviteNavigationPending;
+}
+
+retryStartupButton.addEventListener('click', () => window.location.reload());
+
+createInviteButton.addEventListener('click', async () => {
+  if (!session || !sharedListId || inviteBusy || inviteNavigationPending) return;
+  inviteBusy = true;
+  createInviteButton.disabled = true;
+  inviteStatus.textContent = 'Creating invitation…';
+  try {
+    const { data, error } = await supabaseClient.rpc('create_grocery_list_invite', {
+      target_list_id: sharedListId
+    });
+    if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+      throw new Error('Invitation creation was not confirmed.');
+    }
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = new URLSearchParams({ invite: data }).toString();
+    inviteLinkInput.value = url.href;
+    inviteLinkPanel.hidden = false;
+    inviteStatus.textContent = 'Invitation created. Copy the link and send it to the person joining.';
+    if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      inviteStatus.textContent += ' This address only works on this device. ' +
+        'Open the app at its shared web address to invite someone on another phone.';
+    }
+  } catch {
+    inviteStatus.textContent = 'Could not create an invitation. Check your connection and list access.';
+  } finally {
+    inviteBusy = false;
+    createInviteButton.disabled = false;
+    resumeInviteNavigation();
+  }
+});
+
+copyInviteButton.addEventListener('click', async () => {
+  if (!inviteLinkInput.value) return;
+  try {
+    await navigator.clipboard.writeText(inviteLinkInput.value);
+    inviteStatus.textContent = 'Invitation link copied.';
+  } catch {
+    inviteLinkInput.focus();
+    inviteLinkInput.select();
+    inviteStatus.textContent = 'Copy is unavailable. Copy the selected invitation link manually.';
+  }
+});
 
 function requestListRefresh() {
   refreshRequested = true;
@@ -333,6 +561,10 @@ async function reloadGroceryItems() {
 
 function withLocalMutation(handler) {
   return async (...args) => {
+    if (inviteNavigationPending) {
+      args[0]?.preventDefault?.();
+      return;
+    }
     pendingMutations++;
     refreshVersion++;
     try {
@@ -340,6 +572,7 @@ function withLocalMutation(handler) {
     } finally {
       pendingMutations--;
       requestListRefresh();
+      resumeInviteNavigation();
     }
   };
 }
@@ -635,10 +868,11 @@ clearButton.addEventListener(
   })
 );
 
-render();
-await reloadGroceryItems();
-
-if (session && sharedListId) {
+if (await initializeSharedList()) {
+  groceryContent.hidden = false;
+  createInviteButton.hidden = false;
+  render();
+  await reloadGroceryItems();
   supabaseClient
     .channel(`grocery-items:${sharedListId}`)
     // DELETE payloads may only contain the primary key under RLS. Reloading
