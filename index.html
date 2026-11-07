@@ -167,6 +167,32 @@ List">
     display: none;
   }
 
+  .item-entry { min-width: 0; position: relative; }
+
+  #suggestions {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 4px 0 0;
+    background: white;
+    border: 1px solid #aab9ac;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px #21362a26;
+  }
+
+  #suggestions li {
+    min-height: 48px;
+    margin: 0;
+    border-radius: 0;
+    padding: 12px;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+  }
+
+  #suggestions [aria-selected="true"] { background: #e2ebe1; }
+
   .note {
     font-size: 13px;
     color: #536659;
@@ -201,16 +227,21 @@ List">
 
   <section id="grocery-content" aria-label="Grocery list" hidden>
   <form id="form">
-    <label>
-      Item
+    <div class="item-entry">
+    <label for="name">Item</label>
       <input
         id="name"
         placeholder="e.g. Apples"
         maxlength="150"
         required
         autocomplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="suggestions"
+        aria-expanded="false"
       >
-    </label>
+    <ul id="suggestions" role="listbox" aria-label="Existing grocery items" hidden></ul>
+    </div>
 
     <label>
       Quantity
@@ -262,6 +293,9 @@ const list = document.querySelector('#list');
 const status = document.querySelector('#status');
 const form = document.querySelector('#form');
 const nameInput = document.querySelector('#name');
+const suggestions = document.querySelector('#suggestions');
+let activeSuggestion = -1;
+let suggestionNames = [];
 const quantityInput = document.querySelector('#quantity');
 setQuantityOptions();
 const submitButton =
@@ -292,6 +326,91 @@ let refreshInFlight = false;
 let refreshRequested = false;
 let refreshVersion = 0;
 let refreshTimer = null;
+
+// Only the current entry is completed; earlier comma-separated entries and
+// a typed quantity prefix remain untouched.
+function completionContext(value) {
+  const start = value.lastIndexOf(',') + 1;
+  const entry = value.slice(start);
+  const prefix = entry.match(/^\s*(?:\d+\s*)?/)[0];
+  return { before: value.slice(0, start) + prefix, query: entry.slice(prefix.length) };
+}
+
+function grocerySuggestions(value, currentItems, editing = false) {
+  const query = completionContext(value).query.trim().toLowerCase();
+  if (!query || editing) return [];
+  const entered = new Set(value.slice(0, value.lastIndexOf(',') + 1).split(',')
+    .map(entry => parseGroceryItem(entry).name.toLowerCase()));
+  const names = [...new Map(currentItems.map(item => {
+    const name = item.name.trim();
+    return [name.toLowerCase(), name];
+  })).values()];
+  return names.filter(name => name && !entered.has(name.toLowerCase()) &&
+    name.toLowerCase().includes(query))
+    .sort((a, b) => Number(!a.toLowerCase().startsWith(query)) -
+      Number(!b.toLowerCase().startsWith(query)) || a.localeCompare(b))
+    .slice(0, 6);
+}
+
+function closeSuggestions() {
+  suggestions.hidden = true;
+  nameInput.setAttribute('aria-expanded', 'false');
+  nameInput.removeAttribute('aria-activedescendant');
+  activeSuggestion = -1;
+}
+
+function updateSuggestions() {
+  closeSuggestions();
+  suggestionNames = grocerySuggestions(nameInput.value, items, editingIndex !== null);
+  suggestions.replaceChildren();
+  if (document.activeElement !== nameInput || !suggestionNames.length) return;
+  suggestionNames.forEach((name, index) => {
+    const option = document.createElement('li');
+    option.id = `grocery-suggestion-${index}`;
+    option.setAttribute('role', 'option');
+    option.setAttribute('aria-selected', 'false');
+    option.textContent = name;
+    // Keep input focus and the mobile keyboard while tapping an option.
+    option.addEventListener('pointerdown', event => event.preventDefault());
+    option.addEventListener('click', () => chooseSuggestion(index));
+    suggestions.append(option);
+  });
+  suggestions.hidden = false;
+  nameInput.setAttribute('aria-expanded', 'true');
+}
+
+function chooseSuggestion(index) {
+  const value = completionContext(nameInput.value).before + suggestionNames[index];
+  if (value.length > nameInput.maxLength) return;
+  nameInput.value = value;
+  closeSuggestions();
+  nameInput.focus();
+  nameInput.setSelectionRange(value.length, value.length);
+}
+
+nameInput.addEventListener('input', updateSuggestions);
+nameInput.addEventListener('focus', updateSuggestions);
+nameInput.addEventListener('blur', closeSuggestions);
+nameInput.addEventListener('keydown', event => {
+  if (event.isComposing || suggestions.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSuggestions();
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    activeSuggestion = (activeSuggestion + (event.key === 'ArrowDown' ? 1 :
+      (activeSuggestion < 0 ? 0 : -1)) + suggestionNames.length) % suggestionNames.length;
+    [...suggestions.children].forEach((option, index) => {
+      option.setAttribute('aria-selected', String(index === activeSuggestion));
+    });
+    const option = suggestions.children[activeSuggestion];
+    nameInput.setAttribute('aria-activedescendant', option.id);
+    option.scrollIntoView({ block: 'nearest' });
+  } else if (event.key === 'Enter' && activeSuggestion >= 0) {
+    event.preventDefault();
+    chooseSuggestion(activeSuggestion);
+  }
+});
 
 function showListStorageWarning() {
   listStorageWarning.textContent = 'This browser could not remember your list. ' +
@@ -609,6 +728,7 @@ function setQuantityOptions(quantity = 1) {
 }
 
 function resetForm() {
+  closeSuggestions();
   editingIndex = null;
 
   nameInput.value = '';
@@ -619,6 +739,7 @@ function resetForm() {
 }
 
 function startEdit(index) {
+  closeSuggestions();
   const item = items[index];
 
   editingIndex = index;
@@ -634,6 +755,7 @@ function startEdit(index) {
 }
 
 function render() {
+  updateSuggestions();
   list.replaceChildren();
 
   const remaining = items.filter(
