@@ -137,8 +137,13 @@ List">
     accent-color: #24734e;
   }
 
-  #purchase-error { color: #9c2727; }
-  #purchase-error:empty { display: none; }
+  #purchase-error, #form-error, #write-error, #load-error {
+    color: #9c2727;
+    overflow-wrap: anywhere;
+  }
+  #purchase-error:empty, #form-error:empty, #write-error:empty, #load-error:empty,
+  #shopping-progress[hidden] { display: none; }
+  #form-error { grid-column: 1 / -1; margin: 0; }
 
   .shopping-mode #list > li {
     display: grid;
@@ -305,8 +310,12 @@ List">
     <button id="cancel-edit" type="button">
       Cancel edit
     </button>
+    <p id="form-error" role="alert"></p>
   </form>
 
+  <p id="load-error" role="alert"></p>
+  <button id="retry-list" type="button" hidden>Retry loading list</button>
+  <p id="write-error" role="alert"></p>
   <p id="status" role="status"></p>
   <progress id="shopping-progress" value="0" max="1" aria-label="Shopping progress"
     aria-valuetext="No items yet"></progress>
@@ -359,7 +368,16 @@ const listModeButton = document.querySelector('#list-mode');
 const shoppingModeButton = document.querySelector('#shopping-mode');
 const shoppingProgress = document.querySelector('#shopping-progress');
 const purchaseError = document.querySelector('#purchase-error');
-const pendingPurchases = new Set();
+const pendingItems = new Set();
+const formError = document.querySelector('#form-error');
+const writeError = document.querySelector('#write-error');
+const loadError = document.querySelector('#load-error');
+const retryListButton = document.querySelector('#retry-list');
+let pendingSubmit = false;
+let pendingClear = false;
+let formRevision = 0;
+let hasLoadedItems = false;
+let loadState = 'loading';
 
 function setShoppingMode(enabled) {
   groceryContent.classList.toggle('shopping-mode', enabled);
@@ -386,7 +404,7 @@ let inviteNavigationPending = false;
 
 let items = [];
 let storageAvailable = true;
-let editingIndex = null;
+let editingId = null;
 let pendingMutations = 0;
 let refreshInFlight = false;
 let refreshRequested = false;
@@ -427,7 +445,7 @@ function closeSuggestions() {
 
 function updateSuggestions() {
   closeSuggestions();
-  suggestionNames = grocerySuggestions(nameInput.value, items, editingIndex !== null);
+  suggestionNames = grocerySuggestions(nameInput.value, items, editingId !== null);
   suggestions.replaceChildren();
   if (document.activeElement !== nameInput || !suggestionNames.length) return;
   suggestionNames.forEach((name, index) => {
@@ -449,12 +467,17 @@ function chooseSuggestion(index) {
   const value = completionContext(nameInput.value).before + suggestionNames[index];
   if (value.length > nameInput.maxLength) return;
   nameInput.value = value;
+  formRevision++;
   closeSuggestions();
   nameInput.focus();
   nameInput.setSelectionRange(value.length, value.length);
 }
 
-nameInput.addEventListener('input', updateSuggestions);
+nameInput.addEventListener('input', () => {
+  formRevision++;
+  updateSuggestions();
+});
+quantityInput.addEventListener('change', () => { formRevision++; });
 nameInput.addEventListener('focus', updateSuggestions);
 nameInput.addEventListener('blur', closeSuggestions);
 nameInput.addEventListener('keydown', event => {
@@ -680,6 +703,53 @@ function requestListRefresh() {
   }, 75);
 }
 
+// Retry only reads automatically. A failed write may already have committed.
+retryListButton.addEventListener('click', requestListRefresh);
+
+function updateControls() {
+  submitButton.disabled = pendingSubmit || pendingClear || loadState !== 'ready';
+  form.setAttribute('aria-busy', String(pendingSubmit));
+  retryListButton.disabled = refreshInFlight || pendingMutations > 0;
+  clearButton.disabled = pendingClear || pendingSubmit || pendingItems.size > 0 ||
+    loadState !== 'ready' || !items.some(item => item.done);
+}
+
+function offerListRefresh() {
+  retryListButton.textContent = 'Refresh list';
+  retryListButton.hidden = false;
+}
+
+function acknowledgedRows(result) {
+  if (result.error || !Array.isArray(result.data)) {
+    throw new Error('The server did not confirm the operation.');
+  }
+  return result.data;
+}
+
+function acknowledgedItem(result, id) {
+  const rows = acknowledgedRows(result);
+  if (rows.length !== 1 || rows[0].id !== id) {
+    throw new Error('The item was not confirmed. It may have changed or access may have expired.');
+  }
+  return rows[0];
+}
+
+function localItem(row) {
+  return { id: row.id, name: row.item_name, quantity: row.quantity, done: row.purchased };
+}
+
+function reconcileItem(row) {
+  const index = items.findIndex(item => item.id === row.id);
+  if (index !== -1) items[index] = localItem(row);
+}
+
+function warnIfEditingMissingItem() {
+  if (editingId !== null && !items.some(item => item.id === editingId)) {
+    formError.textContent = 'This item is no longer available. Your draft is still here. ' +
+      'Refresh the list or cancel this edit.';
+  }
+}
+
 async function reloadGroceryItems() {
   if (!sharedListId) return;
   if (refreshInFlight || pendingMutations > 0) {
@@ -691,31 +761,28 @@ async function reloadGroceryItems() {
   refreshRequested = false;
   const version = refreshVersion;
   const listId = sharedListId;
+  const wasReady = loadState === 'ready';
+  if (!hasLoadedItems) {
+    loadState = 'loading';
+    loadError.textContent = '';
+    render();
+  }
+  updateControls();
 
   try {
-    const { data, error } = await supabaseClient
+    const result = await supabaseClient
       .from('grocery_items')
       .select('id, item_name, quantity, purchased')
       .eq('list_id', listId);
-    if (error) {
-      console.error('Grocery items failed to load:', error);
-      return;
-    }
 
     // A mutation or newer event makes this snapshot potentially stale.
     if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
       refreshRequested = true;
       return;
     }
-
-    const rowsById = new Map(data.map(item => [item.id, {
-      id: item.id,
-      name: item.item_name,
-      quantity: item.quantity,
-      done: item.purchased
-    }]));
+    const data = acknowledgedRows(result);
+    const rowsById = new Map(data.map(row => [row.id, localItem(row)]));
     const nextItems = [];
-    // Keep existing rows in their current order; append newly discovered rows.
     for (const item of items) {
       if (rowsById.has(item.id)) {
         nextItems.push(rowsById.get(item.id));
@@ -729,20 +796,31 @@ async function reloadGroceryItems() {
       return item.id === next.id && item.name === next.name &&
         item.quantity === next.quantity && item.done === next.done;
     });
-    // Keep the objects captured by existing DOM handlers when nothing changed.
-    if (unchanged) return;
-
-    const editingId = editingIndex === null ? null : items[editingIndex]?.id;
-    items = nextItems;
-    if (editingIndex !== null) {
-      editingIndex = items.findIndex(item => item.id === editingId);
-      if (editingIndex === -1) resetForm();
+    hasLoadedItems = true;
+    loadState = 'ready';
+    loadError.textContent = '';
+    const retryHadFocus = document.activeElement === retryListButton;
+    retryListButton.hidden = true;
+    if (!unchanged) items = nextItems;
+    warnIfEditingMissingItem();
+    // Keep existing handlers and the active autocomplete option for unchanged data.
+    if (!unchanged || !wasReady) render();
+    if (retryHadFocus) nameInput.focus({ preventScroll: true });
+  } catch {
+    if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
+      refreshRequested = true;
+    } else {
+      loadState = 'error';
+      loadError.textContent = hasLoadedItems ?
+        'Could not refresh your list. Showing the last loaded items; changes are paused. Retry loading the list.' :
+        'Could not load your groceries. Your list may not be empty. Retry loading the list.';
+      retryListButton.textContent = 'Retry loading list';
+      retryListButton.hidden = false;
+      render();
     }
-    render();
-  } catch (error) {
-    console.error('Grocery items failed to load:', error);
   } finally {
     refreshInFlight = false;
+    updateControls();
     if (refreshRequested) requestListRefresh();
   }
 }
@@ -759,6 +837,7 @@ function withLocalMutation(handler) {
       return await handler(...args);
     } finally {
       pendingMutations--;
+      updateControls();
       requestListRefresh();
       resumeInviteNavigation();
     }
@@ -795,7 +874,9 @@ function setQuantityOptions(quantity = 1) {
 
 function resetForm() {
   closeSuggestions();
-  editingIndex = null;
+  editingId = null;
+  formRevision++;
+  formError.textContent = '';
 
   nameInput.value = '';
   setQuantityOptions();
@@ -804,11 +885,13 @@ function resetForm() {
   cancelEditButton.style.display = 'none';
 }
 
-function startEdit(index) {
+function startEdit(id) {
+  const item = items.find(item => item.id === id);
+  if (!item) return;
   closeSuggestions();
-  const item = items[index];
-
-  editingIndex = index;
+  editingId = id;
+  formRevision++;
+  formError.textContent = '';
 
   nameInput.value = item.name;
   setQuantityOptions(item.quantity);
@@ -838,7 +921,12 @@ function render() {
   shoppingProgress.setAttribute('aria-valuetext', items.length ?
     `${purchased} of ${items.length} items purchased` : 'No items yet');
 
-  if (items.length) {
+  shoppingProgress.hidden = !hasLoadedItems;
+  if (loadState === 'error') {
+    status.textContent = hasLoadedItems ? 'List may be out of date.' : 'Groceries unavailable.';
+  } else if (!hasLoadedItems) {
+    status.textContent = 'Loading groceries…';
+  } else if (items.length) {
     status.textContent =
       `${remaining} of ${items.length} items left to buy`;
   } else {
@@ -851,10 +939,9 @@ function render() {
       ' Browser storage unavailable.';
   }
 
-  // Sort only the displayed rows, keeping editing indexes and Realtime order intact.
-  const displayedItems = items.map((item, index) => ({ item, index }))
-    .sort((a, b) => Number(a.item.done) - Number(b.item.done));
-  displayedItems.forEach(({ item, index }) => {
+  // Sort only the displayed rows; item IDs remain stable through reorders.
+  const displayedItems = [...items].sort((a, b) => Number(a.done) - Number(b.done));
+  displayedItems.forEach(item => {
     const row = document.createElement('li');
     row.dataset.itemId = item.id;
     row.tabIndex = -1;
@@ -867,7 +954,7 @@ function render() {
 
     check.type = 'checkbox';
     check.checked = item.done;
-    check.disabled = pendingPurchases.has(item.id);
+    check.disabled = pendingItems.has(item.id) || pendingClear || loadState !== 'ready';
 
     check.setAttribute(
       'aria-label',
@@ -877,22 +964,31 @@ function render() {
     check.addEventListener(
       'change',
      withLocalMutation(async () => {
+        if (pendingItems.has(item.id) || pendingClear || loadState !== 'ready') return;
+        const id = item.id;
         const previouslyDone = item.done;
-        item.done = check.checked;
-        pendingPurchases.add(item.id);
+        const purchased = check.checked;
+        item.done = purchased;
+        pendingItems.add(id);
         purchaseError.textContent = '';
         render();
         try {
-          const { error: updateError } = await supabaseClient
+          const result = await supabaseClient
             .from('grocery_items')
-            .update({ purchased: check.checked })
-            .eq('id', item.id);
-          if (updateError) throw updateError;
+            .update({ purchased })
+            .eq('id', id)
+            .eq('list_id', sharedListId)
+            .select('id, item_name, quantity, purchased');
+          const saved = acknowledgedItem(result, id);
+          if (saved.purchased !== purchased) throw new Error('Purchase not confirmed.');
+          reconcileItem(saved);
         } catch {
-          item.done = previouslyDone;
-          purchaseError.textContent = 'Could not update purchase status. Please try again.';
+          const current = items.find(item => item.id === id);
+          if (current) current.done = previouslyDone;
+          purchaseError.textContent = 'Could not confirm purchase status. Check the refreshed list before trying again.';
+          offerListRefresh();
         } finally {
-          pendingPurchases.delete(item.id);
+          pendingItems.delete(id);
           render();
         }
       })
@@ -920,7 +1016,7 @@ function render() {
     edit.addEventListener(
       'click',
       () => {
-        startEdit(index);
+        startEdit(item.id);
       }
     );
 
@@ -929,6 +1025,7 @@ function render() {
 
     remove.type = 'button';
     remove.className = 'remove';
+    remove.disabled = pendingItems.has(item.id) || pendingClear || loadState !== 'ready';
     remove.textContent = '✕';
 
     remove.setAttribute(
@@ -939,23 +1036,23 @@ function render() {
     remove.addEventListener(
       'click',
     withLocalMutation(async () => {
-const { error: deleteError } = await supabaseClient
-.from('grocery_items')
-.delete()
-.eq('id', item.id);
-if (deleteError) console.error('Grocery item failed to remove:', deleteError);
-if (deleteError) return;
-        items.splice(index, 1);
+        const id = item.id;
+        if (pendingItems.has(id) || pendingClear || loadState !== 'ready') return;
+        pendingItems.add(id);
+        writeError.textContent = '';
         render();
-
-        if (editingIndex === index) {
-
-resetForm();
- } else if (
-          editingIndex !== null &&
-          editingIndex > index
-        ) {
-          editingIndex--;
+        try {
+          const result = await supabaseClient.from('grocery_items')
+            .delete().eq('id', id).eq('list_id', sharedListId).select('id');
+          acknowledgedItem(result, id);
+          items = items.filter(item => item.id !== id);
+          warnIfEditingMissingItem();
+        } catch {
+          writeError.textContent = `Could not confirm removal of ${item.name}. Check the refreshed list before trying again.`;
+          offerListRefresh();
+        } finally {
+          pendingItems.delete(id);
+          render();
         }
       })
     );
@@ -970,8 +1067,7 @@ resetForm();
     list.append(row);
   });
 
-  clearButton.disabled =
-    pendingPurchases.size > 0 || !items.some(item => item.done);
+  updateControls();
 
   // A reorder or remote refresh should keep keyboard focus on the same item.
   if (focusedRow) {
@@ -1003,85 +1099,81 @@ function parseGroceryList(text, defaultQuantity = 1) {
     .map(item => parseGroceryItem(item, defaultQuantity))
     .filter(item => item.name);
 }
-form.addEventListener(
-  'submit',
-withLocalMutation(async event => {
-    event.preventDefault();
+form.addEventListener('submit', withLocalMutation(async event => {
+  event.preventDefault();
+  if (pendingSubmit || pendingClear || loadState !== 'ready') return;
+  const id = editingId;
+  if (id !== null && pendingItems.has(id)) {
+    formError.textContent = 'Wait for the current change to this item, then try saving again.';
+    return;
+  }
+  const revision = formRevision;
+  const name = nameInput.value.trim();
+  const quantity = Number(quantityInput.value);
+  const parsedItems = parseGroceryList(name, quantity);
+  if (!name || !Number.isInteger(quantity) || quantity < 1 || quantity > 999 ||
+      (id === null && (!parsedItems.length || parsedItems.some(item =>
+        !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)))) {
+    formError.textContent = 'Enter an item name and a whole-number quantity from 1 to 999.';
+    return;
+  }
+  if (id !== null && !items.some(item => item.id === id)) {
+    warnIfEditingMissingItem();
+    offerListRefresh();
+    return;
+  }
 
-    const name =
-      nameInput.value.trim();
-
-    const quantity =
-      Number(quantityInput.value);
-
-    if (!name) {
-      nameInput.focus();
-      return;
-    }
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity > 999
-    ) {
-      quantityInput.focus();
-      return;
-    }
-
-    if (editingIndex !== null) {
-const itemToEdit = items[editingIndex];
-const { error: editError } = await supabaseClient
-.from('grocery_items')
-.update({ item_name: name, quantity: quantity })
-.eq('id', itemToEdit.id);
-if (editError) console.error('Grocery item failed to update:', editError);
-if (editError) return;
-      items[editingIndex].name =
-        name;
-
-      items[editingIndex].quantity =
-        quantity;
-render();
+  pendingSubmit = true;
+  if (id !== null) pendingItems.add(id);
+  formError.textContent = '';
+  render();
+  try {
+    if (id !== null) {
+      const result = await supabaseClient.from('grocery_items')
+        .update({ item_name: name, quantity })
+        .eq('id', id).eq('list_id', sharedListId)
+        .select('id, item_name, quantity, purchased');
+      const saved = acknowledgedItem(result, id);
+      if (saved.item_name !== name || saved.quantity !== quantity) throw new Error('Edit not confirmed.');
+      reconcileItem(saved);
     } else {
-const parsedItems = parseGroceryList(name, quantity);
-
-if (parsedItems.some(item =>
-  !Number.isInteger(item.quantity) ||
-  item.quantity < 1 ||
-  item.quantity > 999
-)) {
-  quantityInput.focus();
-  return;
-}
-
-const { data: newItems, error: addError } = await supabaseClient
-  .from('grocery_items')
-  .insert(parsedItems.map(item => ({
-    item_name: item.name,
-    quantity: item.quantity,
-    purchased: false,
-    list_id: sharedListId,
-    owner_id: session.user.id
-  })))
-  .select('id, item_name, quantity, purchased');
-
-if (addError) {
-  console.error('Grocery items failed to add:', addError);
-  return;
-}
-
-items.push(...newItems.map(item => ({
-  id: item.id,
-  name: item.item_name,
-  quantity: item.quantity,
-  done: item.purchased
-})));
-render();
+      const result = await supabaseClient.from('grocery_items')
+        .insert(parsedItems.map(item => ({
+          item_name: item.name, quantity: item.quantity, purchased: false,
+          list_id: sharedListId, owner_id: session.user.id
+        })))
+        .select('id, item_name, quantity, purchased');
+      const saved = acknowledgedRows(result);
+      if (saved.length !== parsedItems.length || saved.some(row => row.id == null) ||
+          new Set(saved.map(row => row.id)).size !== saved.length) {
+        throw new Error('Not all inserted items were confirmed.');
+      }
+      // Response order is not guaranteed; verify the complete requested batch.
+      const remaining = [...saved];
+      for (const item of parsedItems) {
+        const index = remaining.findIndex(row => row.item_name === item.name && row.quantity === item.quantity);
+        if (index === -1) throw new Error('Inserted item not confirmed.');
+        remaining.splice(index, 1);
+      }
+      for (const row of saved) {
+        if (items.some(item => item.id === row.id)) reconcileItem(row);
+        else items.push(localItem(row));
+      }
     }
-    resetForm();
-    nameInput.focus();
-  })
-);
+    // Cancel, switching edits, typing and choosing a suggestion all create a new draft.
+    if (formRevision === revision && editingId === id) {
+      resetForm();
+      nameInput.focus();
+    }
+  } catch {
+    formError.textContent = `Could not confirm saving ${name}. Check the refreshed list before trying again. Any current draft has been kept.`;
+    offerListRefresh();
+  } finally {
+    pendingSubmit = false;
+    if (id !== null) pendingItems.delete(id);
+    render();
+  }
+}));
 
 cancelEditButton.addEventListener(
   'click',
@@ -1091,28 +1183,35 @@ cancelEditButton.addEventListener(
   }
 );
 
-clearButton.addEventListener(
-  'click',
-  withLocalMutation(async () => {
-    const { error: clearError } = await supabaseClient
-      .from('grocery_items')
-      .delete()
-      .eq('list_id', sharedListId)
-      .eq('purchased', true);
-    if (clearError) {
-      console.error('Purchased items failed to clear:', clearError);
-      return;
+clearButton.addEventListener('click', withLocalMutation(async () => {
+  if (pendingClear || pendingSubmit || pendingItems.size || loadState !== 'ready') return;
+  const ids = items.filter(item => item.done).map(item => item.id);
+  if (!ids.length) return;
+  pendingClear = true;
+  writeError.textContent = '';
+  render();
+  try {
+    const result = await supabaseClient.from('grocery_items')
+      .delete().eq('list_id', sharedListId).eq('purchased', true).in('id', ids).select('id');
+    const deleted = acknowledgedRows(result);
+    if (!deleted.length || deleted.some(row => !ids.includes(row.id))) {
+      throw new Error('Deletion was not confirmed.');
     }
-    items =
-      items.filter(
-        item => !item.done
-      );
-
-    resetForm();
+    const deletedIds = new Set(deleted.map(row => row.id));
+    items = items.filter(item => !deletedIds.has(item.id));
+    if (deletedIds.size !== ids.length) {
+      writeError.textContent = 'Some items were not removed. Refresh the list before trying again.';
+      offerListRefresh();
+    }
+    warnIfEditingMissingItem();
+  } catch {
+    writeError.textContent = 'Could not confirm clearing purchased items. Check the refreshed list before trying again.';
+    offerListRefresh();
+  } finally {
+    pendingClear = false;
     render();
-    nameInput.focus();
-  })
-);
+  }
+}));
 
 if (await initializeSharedList()) {
   groceryContent.hidden = false;
