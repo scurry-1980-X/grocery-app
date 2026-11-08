@@ -27,6 +27,7 @@ export const createClient = () => ({
     const query = {
       select: () => query,
       eq: (key, value) => { request.filters.push([key, value]); return query; },
+      in: (key, values) => { request.filters.push([key, values]); return query; },
       insert: payload => { Object.assign(request, { operation: 'insert', payload }); return query; },
       update: payload => { Object.assign(request, { operation: 'update', payload }); return query; },
       delete: () => { request.operation = 'delete'; return query; },
@@ -63,7 +64,7 @@ async function run(browser, width) {
   await context.exposeFunction('mockQuery', async request => {
     calls.push(request);
     assert.equal(request.table, 'grocery_items');
-    const matches = row => request.filters.every(([key, value]) => row[key] === value);
+    const matches = row => request.filters.every(([key, value]) => Array.isArray(value) ? value.includes(row[key]) : row[key] === value);
     if (request.operation === 'update' && hold) await hold;
     if (request.operation === 'update' && failure) {
       const kind = failure;
@@ -76,8 +77,10 @@ async function run(browser, width) {
       data = request.payload.map(row => ({ ...row, id: `new-${++nextId}` }));
       rows.push(...data);
     } else if (request.operation === 'update') {
-      rows.filter(matches).forEach(row => Object.assign(row, request.payload));
+      data = rows.filter(matches);
+      data.forEach(row => Object.assign(row, request.payload));
     } else if (request.operation === 'delete') {
+      data = rows.filter(matches);
       rows = rows.filter(row => !matches(row));
     } else data = rows.filter(matches);
     if (request.operation !== 'select') void broadcast();
@@ -147,7 +150,7 @@ async function run(browser, width) {
     for (const kind of ['error', 'throw']) {
       failure = kind;
       await row('bread').locator('input').tap();
-      await eventually(() => page.locator('#purchase-error').textContent(), 'Could not update purchase status. Please try again.');
+      await eventually(() => page.locator('#purchase-error').textContent(), 'Could not confirm purchase status. Check the refreshed list before trying again.');
       await eventually(() => row('bread').locator('input').isEnabled(), true);
       assert.equal(await row('bread').locator('input').isChecked(), false);
       assert.deepEqual(await progress(), [1, 4]);
@@ -228,8 +231,10 @@ async function run(browser, width) {
     rows = rows.filter(item => item.id !== 'remote');
     await broadcast();
     await eventually(() => row('remote').count(), 0);
+    assert.equal(await input.inputValue(), 'Broccolini');
+    assert.match(await page.locator('#form-error').textContent(), /no longer available/);
+    await page.locator('#cancel-edit').tap();
     assert.equal(await input.inputValue(), '');
-    assert.equal(await page.locator('#submit-button').textContent(), 'Add to list');
 
     // Invitation create and redeem still work through their original flow.
     await page.locator('#create-invite').tap();
