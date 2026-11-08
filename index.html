@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, 
+<meta name="viewport" content="width=device-width,
 initial-scale=1">
 <meta name="theme-color" content="#24734e">
 <link rel="apple-touch-icon" href="grocery_app_icon.png">
-<link rel="icon" type="image/png" 
+<link rel="icon" type="image/png"
 href="grocery_app_icon.png">
-<meta name="apple-mobile-web-app-title" content="My Grocery 
+<meta name="apple-mobile-web-app-title" content="My Grocery
 List">
 <title>My Grocery List</title>
 
@@ -35,7 +35,8 @@ List">
   }
 
   .intro,
-  #status {
+  #status,
+  #invite-status {
     color: #536659;
   }
 
@@ -51,7 +52,8 @@ List">
     font-weight: 600;
   }
 
-  input {
+  input,
+  select {
     display: block;
     width: 100%;
     padding: 14px;
@@ -60,6 +62,12 @@ List">
     border-radius: 12px;
     font: inherit;
     background: white;
+  }
+
+  select {
+    min-height: 48px;
+    padding-inline: 8px;
+    font-size: 16px;
   }
 
   button {
@@ -78,7 +86,8 @@ List">
   }
 
   button:focus-visible,
-  input:focus-visible {
+  input:focus-visible,
+  select:focus-visible {
     outline: 3px solid #dc970b;
     outline-offset: 3px;
   }
@@ -99,15 +108,64 @@ List">
   }
 
   li input {
-    width: 24px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
     margin: 0;
+    accent-color: #24734e;
   }
 
   .item {
     flex: 1;
+    min-width: 0;
     overflow-wrap: anywhere;
   }
+
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .mode-toggle button { flex: 1; }
+  .mode-toggle [aria-pressed="false"] { background: #e2ebe1; color: #21362a; }
+
+  #shopping-progress {
+    display: block;
+    width: 100%;
+    height: 16px;
+    accent-color: #24734e;
+  }
+
+  #purchase-error, #form-error, #write-error, #load-error {
+    color: #9c2727;
+    overflow-wrap: anywhere;
+  }
+  #purchase-error:empty, #form-error:empty, #write-error:empty, #load-error:empty,
+  #shopping-progress[hidden] { display: none; }
+  #form-error { grid-column: 1 / -1; margin: 0; }
+
+  .shopping-mode #list > li {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    min-height: 112px;
+  }
+
+  .shopping-mode #list input {
+    width: 48px;
+    height: 48px;
+    grid-row: 1 / 3;
+  }
+
+  .shopping-mode #list .item {
+    grid-column: 2 / 4;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .shopping-mode #list .edit { grid-column: 2; justify-self: start; }
+  .shopping-mode #list .remove { grid-column: 3; }
+  .shopping-mode #list button { min-height: 48px; }
 
   .done .item {
     text-decoration: line-through;
@@ -142,6 +200,48 @@ List">
     color: #21362a;
   }
 
+  .sharing {
+    margin-top: 24px;
+  }
+
+  .sharing button {
+    margin: 6px 0;
+  }
+
+  #invite-link-panel {
+    margin-top: 12px;
+  }
+
+  #invite-status:empty {
+    display: none;
+  }
+
+  .item-entry { min-width: 0; position: relative; }
+
+  #suggestions {
+    position: absolute;
+    z-index: 1;
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    margin: 4px 0 0;
+    background: white;
+    border: 1px solid #aab9ac;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px #21362a26;
+  }
+
+  #suggestions li {
+    min-height: 48px;
+    margin: 0;
+    border-radius: 0;
+    padding: 12px;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+  }
+
+  #suggestions [aria-selected="true"] { background: #e2ebe1; }
+
   .note {
     font-size: 13px;
     color: #536659;
@@ -155,29 +255,52 @@ List">
   <h1>My Grocery List 🥬</h1>
   <p class="intro">A little less to remember.</p>
 
+  <section class="sharing" aria-label="Share this grocery list">
+    <button id="create-invite" type="button" hidden>Create invite link</button>
+    <div id="invite-link-panel" hidden>
+      <label for="invite-link">Invitation link</label>
+      <input id="invite-link" type="text" readonly spellcheck="false">
+      <button id="copy-invite" type="button">Copy link</button>
+      <p class="note">Anyone with this link can join. It expires and can be used once.</p>
+    </div>
+    <div id="join-panel" hidden>
+      <p>Join this shared grocery list? It will become the active list on this
+        device. Your previous list will not be deleted.</p>
+      <button id="join-list" type="button">Join shared list</button>
+      <button id="cancel-join" type="button">Cancel</button>
+    </div>
+    <p id="invite-status" role="status">Connecting to your grocery list…</p>
+    <button id="retry-startup" type="button" hidden>Retry connection</button>
+    <p id="list-storage-warning" class="note" role="status" hidden></p>
+  </section>
+
+  <section id="grocery-content" aria-label="Grocery list" hidden>
+  <div class="mode-toggle" role="group" aria-label="List view">
+    <button id="list-mode" type="button" aria-pressed="true">List</button>
+    <button id="shopping-mode" type="button" aria-pressed="false">Shopping Mode</button>
+  </div>
   <form id="form">
-    <label>
-      Item
+    <div class="item-entry">
+    <label for="name">Item</label>
       <input
         id="name"
         placeholder="e.g. Apples"
         maxlength="150"
         required
         autocomplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls="suggestions"
+        aria-expanded="false"
       >
-    </label>
+    <ul id="suggestions" role="listbox" aria-label="Existing grocery items" hidden></ul>
+    </div>
 
     <label>
       Quantity
-      <input
-        id="quantity"
-        type="number"
-        value="1"
-        min="1"
-        max="999"
-        step="1"
-        required
-      >
+      <select id="quantity" required>
+        <option value="1" selected>1</option>
+      </select>
     </label>
 
     <button id="submit-button" type="submit">
@@ -187,57 +310,538 @@ List">
     <button id="cancel-edit" type="button">
       Cancel edit
     </button>
+    <p id="form-error" role="alert"></p>
   </form>
 
+  <p id="load-error" role="alert"></p>
+  <button id="retry-list" type="button" hidden>Retry loading list</button>
+  <p id="write-error" role="alert"></p>
   <p id="status" role="status"></p>
+  <progress id="shopping-progress" value="0" max="1" aria-label="Shopping progress"
+    aria-valuetext="No items yet"></progress>
+  <p id="purchase-error" role="alert"></p>
 
   <ul id="list" aria-label="Groceries"></ul>
 
   <button id="clear" type="button">
     Clear purchased items
   </button>
+  </section>
 
   <p class="note">
-    Your list stays in this browser on this device.
-    Clearing browser data will erase it.
+    Your groceries are saved online. This browser remembers your anonymous
+    access. Clearing browser data may require a new invitation to rejoin.
   </p>
 </main>
 
-<script>
+<script type="module">
+
+const supabaseModuleUrl = 'https' + '://' + 'esm.sh' +
+'/@supabase/supabase-js@2';
+
+const { createClient } = await import(supabaseModuleUrl);
+
+const supabaseUrl = 'https://zhineklvgjqqxhefjaqn.supabase.co';
+const supabaseKey = 'sb_publishable_4KrJqyihIQlh8t6vGMKqUQ_aEdztg8R';
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+let session = null;
+const sharedListKey = 'shared-grocery-list-id';
+let sharedListId = null;
 const key = 'my-groceries-v1';
 
 const list = document.querySelector('#list');
 const status = document.querySelector('#status');
 const form = document.querySelector('#form');
 const nameInput = document.querySelector('#name');
+const suggestions = document.querySelector('#suggestions');
+let activeSuggestion = -1;
+let suggestionNames = [];
 const quantityInput = document.querySelector('#quantity');
-const submitButton = 
+setQuantityOptions();
+const submitButton =
 document.querySelector('#submit-button');
-const cancelEditButton = 
+const cancelEditButton =
 document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
+const groceryContent = document.querySelector('#grocery-content');
+const listModeButton = document.querySelector('#list-mode');
+const shoppingModeButton = document.querySelector('#shopping-mode');
+const shoppingProgress = document.querySelector('#shopping-progress');
+const purchaseError = document.querySelector('#purchase-error');
+const pendingItems = new Set();
+const formError = document.querySelector('#form-error');
+const writeError = document.querySelector('#write-error');
+const loadError = document.querySelector('#load-error');
+const retryListButton = document.querySelector('#retry-list');
+let pendingSubmit = false;
+let pendingClear = false;
+let formRevision = 0;
+let hasLoadedItems = false;
+let loadState = 'loading';
+
+function setShoppingMode(enabled) {
+  groceryContent.classList.toggle('shopping-mode', enabled);
+  listModeButton.setAttribute('aria-pressed', String(!enabled));
+  shoppingModeButton.setAttribute('aria-pressed', String(enabled));
+}
+
+listModeButton.addEventListener('click', () => setShoppingMode(false));
+shoppingModeButton.addEventListener('click', () => setShoppingMode(true));
+
+const createInviteButton = document.querySelector('#create-invite');
+const inviteLinkPanel = document.querySelector('#invite-link-panel');
+const inviteLinkInput = document.querySelector('#invite-link');
+const copyInviteButton = document.querySelector('#copy-invite');
+const joinPanel = document.querySelector('#join-panel');
+const joinButton = document.querySelector('#join-list');
+const cancelJoinButton = document.querySelector('#cancel-join');
+const inviteStatus = document.querySelector('#invite-status');
+const retryStartupButton = document.querySelector('#retry-startup');
+const listStorageWarning = document.querySelector('#list-storage-warning');
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let inviteBusy = false;
+let inviteNavigationPending = false;
 
 let items = [];
 let storageAvailable = true;
-let editingIndex = null;
+let editingId = null;
+let pendingMutations = 0;
+let refreshInFlight = false;
+let refreshRequested = false;
+let refreshVersion = 0;
+let refreshTimer = null;
 
-try {
-  const saved = JSON.parse(
-    localStorage.getItem(key) || '[]'
-  );
+// Only the current entry is completed; earlier comma-separated entries and
+// a typed quantity prefix remain untouched.
+function completionContext(value) {
+  const start = value.lastIndexOf(',') + 1;
+  const entry = value.slice(start);
+  const prefix = entry.match(/^\s*(?:\d+\s*)?/)[0];
+  return { before: value.slice(0, start) + prefix, query: entry.slice(prefix.length) };
+}
 
-  if (Array.isArray(saved)) {
-    items = saved.filter(item =>
-      item &&
-      typeof item.name === 'string' &&
-      Number.isInteger(item.quantity) &&
-      item.quantity >= 1 &&
-      item.quantity <= 999 &&
-      typeof item.done === 'boolean'
-    );
+function grocerySuggestions(value, currentItems, editing = false) {
+  const query = completionContext(value).query.trim().toLowerCase();
+  if (!query || editing) return [];
+  const entered = new Set(value.slice(0, value.lastIndexOf(',') + 1).split(',')
+    .map(entry => parseGroceryItem(entry).name.toLowerCase()));
+  const names = [...new Map(currentItems.map(item => {
+    const name = item.name.trim();
+    return [name.toLowerCase(), name];
+  })).values()];
+  return names.filter(name => name && !entered.has(name.toLowerCase()) &&
+    name.toLowerCase().includes(query))
+    .sort((a, b) => Number(!a.toLowerCase().startsWith(query)) -
+      Number(!b.toLowerCase().startsWith(query)) || a.localeCompare(b))
+    .slice(0, 6);
+}
+
+function closeSuggestions() {
+  suggestions.hidden = true;
+  nameInput.setAttribute('aria-expanded', 'false');
+  nameInput.removeAttribute('aria-activedescendant');
+  activeSuggestion = -1;
+}
+
+function updateSuggestions() {
+  closeSuggestions();
+  suggestionNames = grocerySuggestions(nameInput.value, items, editingId !== null);
+  suggestions.replaceChildren();
+  if (document.activeElement !== nameInput || !suggestionNames.length) return;
+  suggestionNames.forEach((name, index) => {
+    const option = document.createElement('li');
+    option.id = `grocery-suggestion-${index}`;
+    option.setAttribute('role', 'option');
+    option.setAttribute('aria-selected', 'false');
+    option.textContent = name;
+    // Keep input focus and the mobile keyboard while tapping an option.
+    option.addEventListener('pointerdown', event => event.preventDefault());
+    option.addEventListener('click', () => chooseSuggestion(index));
+    suggestions.append(option);
+  });
+  suggestions.hidden = false;
+  nameInput.setAttribute('aria-expanded', 'true');
+}
+
+function chooseSuggestion(index) {
+  const value = completionContext(nameInput.value).before + suggestionNames[index];
+  if (value.length > nameInput.maxLength) return;
+  nameInput.value = value;
+  formRevision++;
+  closeSuggestions();
+  nameInput.focus();
+  nameInput.setSelectionRange(value.length, value.length);
+}
+
+nameInput.addEventListener('input', () => {
+  formRevision++;
+  updateSuggestions();
+});
+quantityInput.addEventListener('change', () => { formRevision++; });
+nameInput.addEventListener('focus', updateSuggestions);
+nameInput.addEventListener('blur', closeSuggestions);
+nameInput.addEventListener('keydown', event => {
+  if (event.isComposing || suggestions.hidden) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSuggestions();
+  } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    activeSuggestion = (activeSuggestion + (event.key === 'ArrowDown' ? 1 :
+      (activeSuggestion < 0 ? 0 : -1)) + suggestionNames.length) % suggestionNames.length;
+    [...suggestions.children].forEach((option, index) => {
+      option.setAttribute('aria-selected', String(index === activeSuggestion));
+    });
+    const option = suggestions.children[activeSuggestion];
+    nameInput.setAttribute('aria-activedescendant', option.id);
+    option.scrollIntoView({ block: 'nearest' });
+  } else if (event.key === 'Enter' && activeSuggestion >= 0) {
+    event.preventDefault();
+    chooseSuggestion(activeSuggestion);
   }
-} catch {
-  storageAvailable = false;
+});
+
+function showListStorageWarning() {
+  listStorageWarning.textContent = 'This browser could not remember your list. ' +
+    'Keep this page open; reopening it may require a fresh invitation.';
+  listStorageWarning.hidden = false;
+}
+
+function selectSharedList(listId) {
+  sharedListId = listId;
+  try {
+    localStorage.setItem(sharedListKey, listId);
+  } catch {
+    showListStorageWarning();
+  }
+}
+
+function removeInviteFromUrl() {
+  const url = new URL(window.location.href);
+  const fragment = new URLSearchParams(url.hash.slice(1));
+  fragment.delete('invite');
+  url.hash = fragment.toString();
+  window.history.replaceState(null, '', url.href);
+}
+
+function resumeInviteNavigation() {
+  if (inviteNavigationPending && !inviteBusy && pendingMutations === 0) {
+    window.location.reload();
+  }
+}
+
+// A fragment-only navigation can reuse an open tab. Finish active writes,
+// then restart so the new invitation cannot switch lists under their handlers.
+window.addEventListener('hashchange', () => {
+  if (!new URLSearchParams(window.location.hash.slice(1)).has('invite')) return;
+  inviteNavigationPending = true;
+  document.querySelector('main').inert = true;
+  inviteStatus.textContent = 'Opening invitation after current changes finish…';
+  resumeInviteNavigation();
+});
+
+function offerInvitation(tokens) {
+  joinPanel.hidden = false;
+  const valid = tokens.length === 1 && uuidPattern.test(tokens[0]);
+  joinButton.disabled = !valid;
+  inviteStatus.textContent = valid ? 'An invitation is ready to join.' :
+    'This invitation link is malformed. Ask for a new link or cancel.';
+
+  return new Promise(resolve => {
+    function finish(joined) {
+      joinButton.removeEventListener('click', join);
+      cancelJoinButton.removeEventListener('click', cancel);
+      joinPanel.hidden = true;
+      // Preserve a newer invitation if the URL changed during redemption.
+      if (!inviteNavigationPending) removeInviteFromUrl();
+      resolve(joined);
+    }
+
+    function cancel() {
+      if (!inviteBusy && !inviteNavigationPending) finish(false);
+    }
+
+    async function join() {
+      if (joinButton.disabled || inviteBusy || inviteNavigationPending) return;
+      inviteBusy = true;
+      joinButton.disabled = true;
+      cancelJoinButton.disabled = true;
+      inviteStatus.textContent = 'Joining shared list…';
+      try {
+        const { data, error } = await supabaseClient.rpc('redeem_grocery_list_invite', {
+          invite_token: tokens[0]
+        });
+        if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+          throw new Error('Invitation redemption was not confirmed.');
+        }
+        selectSharedList(data);
+        inviteStatus.textContent = 'Joined the shared grocery list.';
+        finish(true);
+      } catch {
+        // A lost response may mean the single-use token was already consumed.
+        // Do not retry automatically or display server errors containing tokens.
+        inviteStatus.textContent = 'Could not confirm the invitation. It may be expired, ' +
+          'already used, or the connection was interrupted. Ask for a fresh link, ' +
+          'or cancel to continue without joining.';
+      } finally {
+        inviteBusy = false;
+        cancelJoinButton.disabled = false;
+        resumeInviteNavigation();
+      }
+    }
+
+    joinButton.addEventListener('click', join);
+    cancelJoinButton.addEventListener('click', cancel);
+  });
+}
+
+async function initializeSharedList() {
+  try {
+    const current = await supabaseClient.auth.getSession();
+    if (current.error) throw current.error;
+    session = current.data.session;
+    if (!session) {
+      const signedIn = await supabaseClient.auth.signInAnonymously();
+      if (signedIn.error) throw signedIn.error;
+      session = signedIn.data.session;
+    }
+    if (!session) throw new Error('No anonymous session.');
+  } catch {
+    inviteStatus.textContent = 'Could not connect anonymously. Check your connection and retry.';
+    retryStartupButton.hidden = false;
+    return false;
+  }
+
+  try {
+    sharedListId = localStorage.getItem(sharedListKey);
+  } catch {
+    showListStorageWarning();
+  }
+
+  const fragment = new URLSearchParams(window.location.hash.slice(1));
+  if (fragment.has('invite')) {
+    const joined = await offerInvitation(fragment.getAll('invite'));
+    if (inviteNavigationPending) return false;
+    if (joined) return true;
+  }
+
+  inviteStatus.textContent = '';
+  if (!sharedListId) {
+    inviteBusy = true;
+    try {
+      const { data, error } = await supabaseClient.rpc('create_grocery_list');
+      if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+        throw new Error('List creation was not confirmed.');
+      }
+      selectSharedList(data);
+    } catch {
+      inviteStatus.textContent = 'Could not open your grocery list. Check your connection and retry.';
+      retryStartupButton.hidden = false;
+      return false;
+    } finally {
+      inviteBusy = false;
+      resumeInviteNavigation();
+    }
+  }
+  return !inviteNavigationPending;
+}
+
+retryStartupButton.addEventListener('click', () => window.location.reload());
+
+createInviteButton.addEventListener('click', async () => {
+  if (!session || !sharedListId || inviteBusy || inviteNavigationPending) return;
+  inviteBusy = true;
+  createInviteButton.disabled = true;
+  inviteStatus.textContent = 'Creating invitation…';
+  try {
+    const { data, error } = await supabaseClient.rpc('create_grocery_list_invite', {
+      target_list_id: sharedListId
+    });
+    if (error || typeof data !== 'string' || !uuidPattern.test(data)) {
+      throw new Error('Invitation creation was not confirmed.');
+    }
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = new URLSearchParams({ invite: data }).toString();
+    inviteLinkInput.value = url.href;
+    inviteLinkPanel.hidden = false;
+    inviteStatus.textContent = 'Invitation created. Copy the link and send it to the person joining.';
+    if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      inviteStatus.textContent += ' This address only works on this device. ' +
+        'Open the app at its shared web address to invite someone on another phone.';
+    }
+  } catch {
+    inviteStatus.textContent = 'Could not create an invitation. Check your connection and list access.';
+  } finally {
+    inviteBusy = false;
+    createInviteButton.disabled = false;
+    resumeInviteNavigation();
+  }
+});
+
+copyInviteButton.addEventListener('click', async () => {
+  if (!inviteLinkInput.value) return;
+  try {
+    await navigator.clipboard.writeText(inviteLinkInput.value);
+    inviteStatus.textContent = 'Invitation link copied.';
+  } catch {
+    inviteLinkInput.focus();
+    inviteLinkInput.select();
+    inviteStatus.textContent = 'Copy is unavailable. Copy the selected invitation link manually.';
+  }
+});
+
+function requestListRefresh() {
+  refreshRequested = true;
+  refreshVersion++;
+  if (refreshTimer !== null || refreshInFlight || pendingMutations > 0) return;
+
+  // Batch bursts such as the individual DELETE events from Clear Purchased.
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null;
+    void reloadGroceryItems();
+  }, 75);
+}
+
+// Retry only reads automatically. A failed write may already have committed.
+retryListButton.addEventListener('click', requestListRefresh);
+
+function updateControls() {
+  submitButton.disabled = pendingSubmit || pendingClear || loadState !== 'ready';
+  form.setAttribute('aria-busy', String(pendingSubmit));
+  retryListButton.disabled = refreshInFlight || pendingMutations > 0;
+  clearButton.disabled = pendingClear || pendingSubmit || pendingItems.size > 0 ||
+    loadState !== 'ready' || !items.some(item => item.done);
+}
+
+function offerListRefresh() {
+  retryListButton.textContent = 'Refresh list';
+  retryListButton.hidden = false;
+}
+
+function acknowledgedRows(result) {
+  if (result.error || !Array.isArray(result.data)) {
+    throw new Error('The server did not confirm the operation.');
+  }
+  return result.data;
+}
+
+function acknowledgedItem(result, id) {
+  const rows = acknowledgedRows(result);
+  if (rows.length !== 1 || rows[0].id !== id) {
+    throw new Error('The item was not confirmed. It may have changed or access may have expired.');
+  }
+  return rows[0];
+}
+
+function localItem(row) {
+  return { id: row.id, name: row.item_name, quantity: row.quantity, done: row.purchased };
+}
+
+function reconcileItem(row) {
+  const index = items.findIndex(item => item.id === row.id);
+  if (index !== -1) items[index] = localItem(row);
+}
+
+function warnIfEditingMissingItem() {
+  if (editingId !== null && !items.some(item => item.id === editingId)) {
+    formError.textContent = 'This item is no longer available. Your draft is still here. ' +
+      'Refresh the list or cancel this edit.';
+  }
+}
+
+async function reloadGroceryItems() {
+  if (!sharedListId) return;
+  if (refreshInFlight || pendingMutations > 0) {
+    refreshRequested = true;
+    return;
+  }
+
+  refreshInFlight = true;
+  refreshRequested = false;
+  const version = refreshVersion;
+  const listId = sharedListId;
+  const wasReady = loadState === 'ready';
+  if (!hasLoadedItems) {
+    loadState = 'loading';
+    loadError.textContent = '';
+    render();
+  }
+  updateControls();
+
+  try {
+    const result = await supabaseClient
+      .from('grocery_items')
+      .select('id, item_name, quantity, purchased')
+      .eq('list_id', listId);
+
+    // A mutation or newer event makes this snapshot potentially stale.
+    if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
+      refreshRequested = true;
+      return;
+    }
+    const data = acknowledgedRows(result);
+    const rowsById = new Map(data.map(row => [row.id, localItem(row)]));
+    const nextItems = [];
+    for (const item of items) {
+      if (rowsById.has(item.id)) {
+        nextItems.push(rowsById.get(item.id));
+        rowsById.delete(item.id);
+      }
+    }
+    nextItems.push(...rowsById.values());
+
+    const unchanged = items.length === nextItems.length && items.every((item, index) => {
+      const next = nextItems[index];
+      return item.id === next.id && item.name === next.name &&
+        item.quantity === next.quantity && item.done === next.done;
+    });
+    hasLoadedItems = true;
+    loadState = 'ready';
+    loadError.textContent = '';
+    const retryHadFocus = document.activeElement === retryListButton;
+    retryListButton.hidden = true;
+    if (!unchanged) items = nextItems;
+    warnIfEditingMissingItem();
+    // Keep existing handlers and the active autocomplete option for unchanged data.
+    if (!unchanged || !wasReady) render();
+    if (retryHadFocus) nameInput.focus({ preventScroll: true });
+  } catch {
+    if (version !== refreshVersion || pendingMutations > 0 || listId !== sharedListId) {
+      refreshRequested = true;
+    } else {
+      loadState = 'error';
+      loadError.textContent = hasLoadedItems ?
+        'Could not refresh your list. Showing the last loaded items; changes are paused. Retry loading the list.' :
+        'Could not load your groceries. Your list may not be empty. Retry loading the list.';
+      retryListButton.textContent = 'Retry loading list';
+      retryListButton.hidden = false;
+      render();
+    }
+  } finally {
+    refreshInFlight = false;
+    updateControls();
+    if (refreshRequested) requestListRefresh();
+  }
+}
+
+function withLocalMutation(handler) {
+  return async (...args) => {
+    if (inviteNavigationPending) {
+      args[0]?.preventDefault?.();
+      return;
+    }
+    pendingMutations++;
+    refreshVersion++;
+    try {
+      return await handler(...args);
+    } finally {
+      pendingMutations--;
+      updateControls();
+      requestListRefresh();
+      resumeInviteNavigation();
+    }
+  };
 }
 
 function save() {
@@ -255,23 +859,42 @@ function save() {
   render();
 }
 
+function setQuantityOptions(quantity = 1) {
+  quantityInput.replaceChildren(...Array.from({ length: 100 }, (_, index) =>
+    new Option(String(index + 1), String(index + 1))
+  ));
+  quantityInput.value = String(quantity);
+  // Keep legacy quantities visible and unchanged until a new value is chosen.
+  if (quantityInput.value === '') {
+    const existingOption = new Option(String(quantity), String(quantity), false, true);
+    existingOption.disabled = true;
+    quantityInput.add(existingOption);
+  }
+}
+
 function resetForm() {
-  editingIndex = null;
+  closeSuggestions();
+  editingId = null;
+  formRevision++;
+  formError.textContent = '';
 
   nameInput.value = '';
-  quantityInput.value = '1';
+  setQuantityOptions();
 
   submitButton.textContent = 'Add to list';
   cancelEditButton.style.display = 'none';
 }
 
-function startEdit(index) {
-  const item = items[index];
-
-  editingIndex = index;
+function startEdit(id) {
+  const item = items.find(item => item.id === id);
+  if (!item) return;
+  closeSuggestions();
+  editingId = id;
+  formRevision++;
+  formError.textContent = '';
 
   nameInput.value = item.name;
-  quantityInput.value = item.quantity;
+  setQuantityOptions(item.quantity);
 
   submitButton.textContent = 'Save changes';
   cancelEditButton.style.display = 'block';
@@ -281,13 +904,29 @@ function startEdit(index) {
 }
 
 function render() {
+  updateSuggestions();
+  const focusedControl = document.activeElement;
+  const focusedRow = focusedControl.closest('#list > li');
+  const focusedIndex = [...list.children].indexOf(focusedRow);
+  const focusSelector = focusedControl === focusedRow || focusedControl.matches('input') ? 'input' :
+    focusedControl.matches('.edit') ? '.edit' : '.remove';
   list.replaceChildren();
 
   const remaining = items.filter(
     item => !item.done
   ).length;
+  const purchased = items.length - remaining;
+  shoppingProgress.max = items.length || 1;
+  shoppingProgress.value = purchased;
+  shoppingProgress.setAttribute('aria-valuetext', items.length ?
+    `${purchased} of ${items.length} items purchased` : 'No items yet');
 
-  if (items.length) {
+  shoppingProgress.hidden = !hasLoadedItems;
+  if (loadState === 'error') {
+    status.textContent = hasLoadedItems ? 'List may be out of date.' : 'Groceries unavailable.';
+  } else if (!hasLoadedItems) {
+    status.textContent = 'Loading groceries…';
+  } else if (items.length) {
     status.textContent =
       `${remaining} of ${items.length} items left to buy`;
   } else {
@@ -300,8 +939,12 @@ function render() {
       ' Browser storage unavailable.';
   }
 
-  items.forEach((item, index) => {
+  // Sort only the displayed rows; item IDs remain stable through reorders.
+  const displayedItems = [...items].sort((a, b) => Number(a.done) - Number(b.done));
+  displayedItems.forEach(item => {
     const row = document.createElement('li');
+    row.dataset.itemId = item.id;
+    row.tabIndex = -1;
 
     row.className =
       item.done ? 'done' : '';
@@ -311,6 +954,7 @@ function render() {
 
     check.type = 'checkbox';
     check.checked = item.done;
+    check.disabled = pendingItems.has(item.id) || pendingClear || loadState !== 'ready';
 
     check.setAttribute(
       'aria-label',
@@ -319,19 +963,35 @@ function render() {
 
     check.addEventListener(
       'change',
-      () => {
-        item.done = check.checked;
-        save();
-
-        const replacement =
-          list.children[index];
-
-        if (replacement) {
-          replacement
-            .querySelector('input')
-            .focus();
+     withLocalMutation(async () => {
+        if (pendingItems.has(item.id) || pendingClear || loadState !== 'ready') return;
+        const id = item.id;
+        const previouslyDone = item.done;
+        const purchased = check.checked;
+        item.done = purchased;
+        pendingItems.add(id);
+        purchaseError.textContent = '';
+        render();
+        try {
+          const result = await supabaseClient
+            .from('grocery_items')
+            .update({ purchased })
+            .eq('id', id)
+            .eq('list_id', sharedListId)
+            .select('id, item_name, quantity, purchased');
+          const saved = acknowledgedItem(result, id);
+          if (saved.purchased !== purchased) throw new Error('Purchase not confirmed.');
+          reconcileItem(saved);
+        } catch {
+          const current = items.find(item => item.id === id);
+          if (current) current.done = previouslyDone;
+          purchaseError.textContent = 'Could not confirm purchase status. Check the refreshed list before trying again.';
+          offerListRefresh();
+        } finally {
+          pendingItems.delete(id);
+          render();
         }
-      }
+      })
     );
 
     const text =
@@ -356,7 +1016,7 @@ function render() {
     edit.addEventListener(
       'click',
       () => {
-        startEdit(index);
+        startEdit(item.id);
       }
     );
 
@@ -365,6 +1025,7 @@ function render() {
 
     remove.type = 'button';
     remove.className = 'remove';
+    remove.disabled = pendingItems.has(item.id) || pendingClear || loadState !== 'ready';
     remove.textContent = '✕';
 
     remove.setAttribute(
@@ -374,36 +1035,26 @@ function render() {
 
     remove.addEventListener(
       'click',
-      () => {
-        items.splice(index, 1);
-
-        if (editingIndex === index) {
-          resetForm();
-        } else if (
-          editingIndex !== null &&
-          editingIndex > index
-        ) {
-          editingIndex--;
+    withLocalMutation(async () => {
+        const id = item.id;
+        if (pendingItems.has(id) || pendingClear || loadState !== 'ready') return;
+        pendingItems.add(id);
+        writeError.textContent = '';
+        render();
+        try {
+          const result = await supabaseClient.from('grocery_items')
+            .delete().eq('id', id).eq('list_id', sharedListId).select('id');
+          acknowledgedItem(result, id);
+          items = items.filter(item => item.id !== id);
+          warnIfEditingMissingItem();
+        } catch {
+          writeError.textContent = `Could not confirm removal of ${item.name}. Check the refreshed list before trying again.`;
+          offerListRefresh();
+        } finally {
+          pendingItems.delete(id);
+          render();
         }
-
-        save();
-
-        const next =
-          list.children[
-            Math.min(
-              index,
-              items.length - 1
-            )
-          ];
-
-        if (next) {
-          next
-            .querySelector('.remove')
-            .focus();
-        } else {
-          nameInput.focus();
-        }
-      }
+      })
     );
 
     row.append(
@@ -416,8 +1067,16 @@ function render() {
     list.append(row);
   });
 
-  clearButton.disabled =
-    !items.some(item => item.done);
+  updateControls();
+
+  // A reorder or remote refresh should keep keyboard focus on the same item.
+  if (focusedRow) {
+    const replacement = [...list.children].find(row =>
+      row.dataset.itemId === focusedRow.dataset.itemId) ||
+      list.children[Math.min(focusedIndex, list.children.length - 1)];
+    const target = replacement?.querySelector(focusSelector);
+    (target?.disabled ? replacement : target || nameInput).focus({ preventScroll: true });
+  }
 }
   function parseGroceryItem(text, defaultQuantity = 1) {
   const match = text.trim().match(/^(\d+)\s*(.+)$/);
@@ -440,50 +1099,81 @@ function parseGroceryList(text, defaultQuantity = 1) {
     .map(item => parseGroceryItem(item, defaultQuantity))
     .filter(item => item.name);
 }
-form.addEventListener(
-  'submit',
-  event => {
-    event.preventDefault();
-
-    const name =
-      nameInput.value.trim();
-
-    const quantity =
-      Number(quantityInput.value);
-
-    if (!name) {
-      nameInput.focus();
-      return;
-    }
-
-    if (
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity > 999
-    ) {
-      quantityInput.focus();
-      return;
-    }
-
-    if (editingIndex !== null) {
-      items[editingIndex].name =
-        name;
-
-      items[editingIndex].quantity =
-        quantity;
-    } else {
-const parsedItems = parseGroceryList(name, quantity);
-items.push(...parsedItems.map(item => ({
-  ...item,
-  done: false
-})));
-    }
-
-    resetForm();
-    save();
-    nameInput.focus();
+form.addEventListener('submit', withLocalMutation(async event => {
+  event.preventDefault();
+  if (pendingSubmit || pendingClear || loadState !== 'ready') return;
+  const id = editingId;
+  if (id !== null && pendingItems.has(id)) {
+    formError.textContent = 'Wait for the current change to this item, then try saving again.';
+    return;
   }
-);
+  const revision = formRevision;
+  const name = nameInput.value.trim();
+  const quantity = Number(quantityInput.value);
+  const parsedItems = parseGroceryList(name, quantity);
+  if (!name || !Number.isInteger(quantity) || quantity < 1 || quantity > 999 ||
+      (id === null && (!parsedItems.length || parsedItems.some(item =>
+        !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999)))) {
+    formError.textContent = 'Enter an item name and a whole-number quantity from 1 to 999.';
+    return;
+  }
+  if (id !== null && !items.some(item => item.id === id)) {
+    warnIfEditingMissingItem();
+    offerListRefresh();
+    return;
+  }
+
+  pendingSubmit = true;
+  if (id !== null) pendingItems.add(id);
+  formError.textContent = '';
+  render();
+  try {
+    if (id !== null) {
+      const result = await supabaseClient.from('grocery_items')
+        .update({ item_name: name, quantity })
+        .eq('id', id).eq('list_id', sharedListId)
+        .select('id, item_name, quantity, purchased');
+      const saved = acknowledgedItem(result, id);
+      if (saved.item_name !== name || saved.quantity !== quantity) throw new Error('Edit not confirmed.');
+      reconcileItem(saved);
+    } else {
+      const result = await supabaseClient.from('grocery_items')
+        .insert(parsedItems.map(item => ({
+          item_name: item.name, quantity: item.quantity, purchased: false,
+          list_id: sharedListId, owner_id: session.user.id
+        })))
+        .select('id, item_name, quantity, purchased');
+      const saved = acknowledgedRows(result);
+      if (saved.length !== parsedItems.length || saved.some(row => row.id == null) ||
+          new Set(saved.map(row => row.id)).size !== saved.length) {
+        throw new Error('Not all inserted items were confirmed.');
+      }
+      // Response order is not guaranteed; verify the complete requested batch.
+      const remaining = [...saved];
+      for (const item of parsedItems) {
+        const index = remaining.findIndex(row => row.item_name === item.name && row.quantity === item.quantity);
+        if (index === -1) throw new Error('Inserted item not confirmed.');
+        remaining.splice(index, 1);
+      }
+      for (const row of saved) {
+        if (items.some(item => item.id === row.id)) reconcileItem(row);
+        else items.push(localItem(row));
+      }
+    }
+    // Cancel, switching edits, typing and choosing a suggestion all create a new draft.
+    if (formRevision === revision && editingId === id) {
+      resetForm();
+      nameInput.focus();
+    }
+  } catch {
+    formError.textContent = `Could not confirm saving ${name}. Check the refreshed list before trying again. Any current draft has been kept.`;
+    offerListRefresh();
+  } finally {
+    pendingSubmit = false;
+    if (id !== null) pendingItems.delete(id);
+    render();
+  }
+}));
 
 cancelEditButton.addEventListener(
   'click',
@@ -493,21 +1183,61 @@ cancelEditButton.addEventListener(
   }
 );
 
-clearButton.addEventListener(
-  'click',
-  () => {
-    items =
-      items.filter(
-        item => !item.done
-      );
-
-    resetForm();
-    save();
-    nameInput.focus();
+clearButton.addEventListener('click', withLocalMutation(async () => {
+  if (pendingClear || pendingSubmit || pendingItems.size || loadState !== 'ready') return;
+  const ids = items.filter(item => item.done).map(item => item.id);
+  if (!ids.length) return;
+  pendingClear = true;
+  writeError.textContent = '';
+  render();
+  try {
+    const result = await supabaseClient.from('grocery_items')
+      .delete().eq('list_id', sharedListId).eq('purchased', true).in('id', ids).select('id');
+    const deleted = acknowledgedRows(result);
+    if (!deleted.length || deleted.some(row => !ids.includes(row.id))) {
+      throw new Error('Deletion was not confirmed.');
+    }
+    const deletedIds = new Set(deleted.map(row => row.id));
+    items = items.filter(item => !deletedIds.has(item.id));
+    if (deletedIds.size !== ids.length) {
+      writeError.textContent = 'Some items were not removed. Refresh the list before trying again.';
+      offerListRefresh();
+    }
+    warnIfEditingMissingItem();
+  } catch {
+    writeError.textContent = 'Could not confirm clearing purchased items. Check the refreshed list before trying again.';
+    offerListRefresh();
+  } finally {
+    pendingClear = false;
+    render();
   }
-);
+}));
 
-render();
+if (await initializeSharedList()) {
+  groceryContent.hidden = false;
+  createInviteButton.hidden = false;
+  render();
+  await reloadGroceryItems();
+  supabaseClient
+    .channel(`grocery-items:${sharedListId}`)
+    // DELETE payloads may only contain the primary key under RLS. Reloading
+    // the current list also makes unrelated table events harmless to the UI.
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'grocery_items'
+    }, requestListRefresh)
+    .subscribe((subscriptionStatus, error) => {
+      if (subscriptionStatus === 'SUBSCRIBED') {
+        // Close the initial-load gap and catch up after a reconnect.
+        requestListRefresh();
+      } else if (subscriptionStatus === 'CHANNEL_ERROR' ||
+                 subscriptionStatus === 'TIMED_OUT' ||
+                 subscriptionStatus === 'CLOSED') {
+        console.error('Grocery Realtime subscription:', subscriptionStatus, error);
+      }
+    });
+}
 </script>
 </body>
 </html>
