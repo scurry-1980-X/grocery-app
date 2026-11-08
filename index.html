@@ -108,15 +108,59 @@ List">
   }
 
   li input {
-    width: 24px;
-    height: 24px;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
     margin: 0;
+    accent-color: #24734e;
   }
 
   .item {
     flex: 1;
+    min-width: 0;
     overflow-wrap: anywhere;
   }
+
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-top: 24px;
+  }
+
+  .mode-toggle button { flex: 1; }
+  .mode-toggle [aria-pressed="false"] { background: #e2ebe1; color: #21362a; }
+
+  #shopping-progress {
+    display: block;
+    width: 100%;
+    height: 16px;
+    accent-color: #24734e;
+  }
+
+  #purchase-error { color: #9c2727; }
+  #purchase-error:empty { display: none; }
+
+  .shopping-mode #list > li {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    min-height: 112px;
+  }
+
+  .shopping-mode #list input {
+    width: 48px;
+    height: 48px;
+    grid-row: 1 / 3;
+  }
+
+  .shopping-mode #list .item {
+    grid-column: 2 / 4;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .shopping-mode #list .edit { grid-column: 2; justify-self: start; }
+  .shopping-mode #list .remove { grid-column: 3; }
+  .shopping-mode #list button { min-height: 48px; }
 
   .done .item {
     text-decoration: line-through;
@@ -226,6 +270,10 @@ List">
   </section>
 
   <section id="grocery-content" aria-label="Grocery list" hidden>
+  <div class="mode-toggle" role="group" aria-label="List view">
+    <button id="list-mode" type="button" aria-pressed="true">List</button>
+    <button id="shopping-mode" type="button" aria-pressed="false">Shopping Mode</button>
+  </div>
   <form id="form">
     <div class="item-entry">
     <label for="name">Item</label>
@@ -260,6 +308,9 @@ List">
   </form>
 
   <p id="status" role="status"></p>
+  <progress id="shopping-progress" value="0" max="1" aria-label="Shopping progress"
+    aria-valuetext="No items yet"></progress>
+  <p id="purchase-error" role="alert"></p>
 
   <ul id="list" aria-label="Groceries"></ul>
 
@@ -304,6 +355,21 @@ const cancelEditButton =
 document.querySelector('#cancel-edit');
 const clearButton = document.querySelector('#clear');
 const groceryContent = document.querySelector('#grocery-content');
+const listModeButton = document.querySelector('#list-mode');
+const shoppingModeButton = document.querySelector('#shopping-mode');
+const shoppingProgress = document.querySelector('#shopping-progress');
+const purchaseError = document.querySelector('#purchase-error');
+const pendingPurchases = new Set();
+
+function setShoppingMode(enabled) {
+  groceryContent.classList.toggle('shopping-mode', enabled);
+  listModeButton.setAttribute('aria-pressed', String(!enabled));
+  shoppingModeButton.setAttribute('aria-pressed', String(enabled));
+}
+
+listModeButton.addEventListener('click', () => setShoppingMode(false));
+shoppingModeButton.addEventListener('click', () => setShoppingMode(true));
+
 const createInviteButton = document.querySelector('#create-invite');
 const inviteLinkPanel = document.querySelector('#invite-link-panel');
 const inviteLinkInput = document.querySelector('#invite-link');
@@ -756,11 +822,21 @@ function startEdit(index) {
 
 function render() {
   updateSuggestions();
+  const focusedControl = document.activeElement;
+  const focusedRow = focusedControl.closest('#list > li');
+  const focusedIndex = [...list.children].indexOf(focusedRow);
+  const focusSelector = focusedControl === focusedRow || focusedControl.matches('input') ? 'input' :
+    focusedControl.matches('.edit') ? '.edit' : '.remove';
   list.replaceChildren();
 
   const remaining = items.filter(
     item => !item.done
   ).length;
+  const purchased = items.length - remaining;
+  shoppingProgress.max = items.length || 1;
+  shoppingProgress.value = purchased;
+  shoppingProgress.setAttribute('aria-valuetext', items.length ?
+    `${purchased} of ${items.length} items purchased` : 'No items yet');
 
   if (items.length) {
     status.textContent =
@@ -775,8 +851,13 @@ function render() {
       ' Browser storage unavailable.';
   }
 
-  items.forEach((item, index) => {
+  // Sort only the displayed rows, keeping editing indexes and Realtime order intact.
+  const displayedItems = items.map((item, index) => ({ item, index }))
+    .sort((a, b) => Number(a.item.done) - Number(b.item.done));
+  displayedItems.forEach(({ item, index }) => {
     const row = document.createElement('li');
+    row.dataset.itemId = item.id;
+    row.tabIndex = -1;
 
     row.className =
       item.done ? 'done' : '';
@@ -786,6 +867,7 @@ function render() {
 
     check.type = 'checkbox';
     check.checked = item.done;
+    check.disabled = pendingPurchases.has(item.id);
 
     check.setAttribute(
       'aria-label',
@@ -795,21 +877,23 @@ function render() {
     check.addEventListener(
       'change',
      withLocalMutation(async () => {
+        const previouslyDone = item.done;
         item.done = check.checked;
-const { error: updateError } = await supabaseClient
-.from('grocery_items')
-.update({ purchased: check.checked })
-.eq('id', item.id);
-if (updateError) console.error('Purchased status failed to update:', updateError);
-render();
-
-        const replacement =
-          list.children[index];
-
-        if (replacement) {
-          replacement
-            .querySelector('input')
-            .focus();
+        pendingPurchases.add(item.id);
+        purchaseError.textContent = '';
+        render();
+        try {
+          const { error: updateError } = await supabaseClient
+            .from('grocery_items')
+            .update({ purchased: check.checked })
+            .eq('id', item.id);
+          if (updateError) throw updateError;
+        } catch {
+          item.done = previouslyDone;
+          purchaseError.textContent = 'Could not update purchase status. Please try again.';
+        } finally {
+          pendingPurchases.delete(item.id);
+          render();
         }
       })
     );
@@ -873,23 +957,6 @@ resetForm();
         ) {
           editingIndex--;
         }
-
-
-        const next =
-          list.children[
-            Math.min(
-              index,
-              items.length - 1
-            )
-          ];
-
-        if (next) {
-          next
-            .querySelector('.remove')
-            .focus();
-        } else {
-          nameInput.focus();
-        }
       })
     );
 
@@ -904,7 +971,16 @@ resetForm();
   });
 
   clearButton.disabled =
-    !items.some(item => item.done);
+    pendingPurchases.size > 0 || !items.some(item => item.done);
+
+  // A reorder or remote refresh should keep keyboard focus on the same item.
+  if (focusedRow) {
+    const replacement = [...list.children].find(row =>
+      row.dataset.itemId === focusedRow.dataset.itemId) ||
+      list.children[Math.min(focusedIndex, list.children.length - 1)];
+    const target = replacement?.querySelector(focusSelector);
+    (target?.disabled ? replacement : target || nameInput).focus({ preventScroll: true });
+  }
 }
   function parseGroceryItem(text, defaultQuantity = 1) {
   const match = text.trim().match(/^(\d+)\s*(.+)$/);
