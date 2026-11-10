@@ -1,0 +1,55 @@
+name: Security runner diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # No checkout, downloads, installations, containers, or service startup.
+      - name: Report preinstalled runner resources
+        shell: bash
+        run: |
+          printf '\nOperating system\n'
+          cat /etc/os-release
+          printf '\nArchitecture\n'
+          uname -m
+
+          printf '\nAvailable CPU cores\n'
+          nproc
+
+          printf '\nRAM (total and available)\n'
+          free -h
+
+          printf '\nRoot filesystem space\n'
+          df -h --output=size,used,avail,pcent,target -- /
+
+          printf '\nTemporary filesystem space (/tmp)\n'
+          df -h --output=size,used,avail,pcent,target -- /tmp
+          # Resolve the runner temp directory without printing environment values.
+          if [ -n "${RUNNER_TEMP:-}" ] && [ -d "$RUNNER_TEMP" ]; then
+            printf '\nRunner temporary filesystem space\n'
+            df -h --output=size,used,avail,pcent,target -- "$RUNNER_TEMP"
+          else
+            printf '\nRunner temporary directory unavailable; /tmp reported above.\n'
+          fi
+          printf '\nFilesystem reports may refer to the same shared capacity.\n'
+
+          printf '\nDocker CLI availability and version (no daemon connection)\n'
+          if command -v docker >/dev/null 2>&1; then
+            docker --version
+          else
+            printf 'Docker CLI is not installed or not on PATH.\n'
+          fi
+
+          printf '\nNode.js version\n'
+          if command -v node >/dev/null 2>&1; then
+            node --version
+          else
+            printf 'Node.js is not installed or not on PATH.\n'
+          fi
